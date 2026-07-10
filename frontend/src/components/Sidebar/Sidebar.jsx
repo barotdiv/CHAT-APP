@@ -5,7 +5,7 @@ import ConversationList from './ConversationList';
 import { Menu, X } from 'lucide-react';
 
 export default function Sidebar({ 
-  chats, activeChatId, onNewChat, onSelectChat, onRenameChat, onDeleteChat 
+  chats, activeChatId, onNewChat, onSelectChat, onRenameChat, onDeleteChat, onTogglePin 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -52,6 +52,7 @@ export default function Sidebar({
             }}
             onRenameChat={onRenameChat}
             onDeleteChat={onDeleteChat}
+            onTogglePin={onTogglePin}
           />
         </div>
       </aside>

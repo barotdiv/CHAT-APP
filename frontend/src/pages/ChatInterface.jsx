@@ -8,7 +8,7 @@ import Sidebar from '../components/Sidebar/Sidebar';
 export default function ChatInterface() {
   const { 
     chats, activeChatId, setActiveChatId, 
-    createNewChat, deleteChat, renameChat, addMessage 
+    createNewChat, deleteChat, renameChat, togglePinChat, addMessage 
   } = useConversations();
 
   const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
@@ -82,6 +82,7 @@ export default function ChatInterface() {
         onSelectChat={setActiveChatId}
         onRenameChat={renameChat}
         onDeleteChat={deleteChat}
+        onTogglePin={togglePinChat}
       />
       
       <div className="chat-container">
@@ -148,7 +149,7 @@ export default function ChatInterface() {
         }
 
         .sidebar-header {
-          padding: 16px;
+          padding: 16px 16px 8px 16px;
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -163,18 +164,25 @@ export default function ChatInterface() {
 
         .new-chat-btn {
           width: 100% !important;
-          background-color: #16A34A !important;
           border-radius: 8px !important;
+          box-sizing: border-box;
         }
 
         .sidebar-search {
-          padding: 0 16px 16px;
+          padding: 8px 16px 16px 16px;
         }
 
         .search-input-wrapper {
           position: relative;
           display: flex;
           align-items: center;
+          width: 100%;
+        }
+        
+        /* Ensure any internal containers created by Astryx TextInput take full width */
+        .sidebar-search > .search-input-wrapper > div,
+        .sidebar-search > .search-input-wrapper > input {
+          width: 100%;
         }
 
         .search-icon {
@@ -185,16 +193,19 @@ export default function ChatInterface() {
         }
 
         .sidebar-search :global(.astryx-text-input-field) {
-          padding-left: 36px !important;
           background-color: #1A1C23 !important;
           border: 1px solid rgba(255, 255, 255, 0.1) !important;
           border-radius: 8px !important;
+          padding: 12px 16px !important;
+          font-size: 1.05rem !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
         }
 
         .sidebar-scroll-area {
           flex: 1;
           overflow-y: auto;
-          padding: 0 12px 16px;
+          padding: 0 16px 16px 16px; /* Align with header and search padding */
         }
         
         .sidebar-scroll-area::-webkit-scrollbar {
@@ -215,14 +226,16 @@ export default function ChatInterface() {
         .conversation-item {
           display: flex;
           align-items: center;
-          padding: 12px;
+          padding: 10px 12px;
           border-radius: 8px;
           cursor: pointer;
           gap: 12px;
           color: rgba(255, 255, 255, 0.7);
           transition: background-color 0.2s;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
           position: relative;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .conversation-item:hover, .conversation-item.active {
@@ -266,13 +279,49 @@ export default function ChatInterface() {
           margin-top: 2px;
         }
 
+        .chat-section {
+          margin-bottom: 12px;
+        }
+
+        .chat-section-title {
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.4);
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          margin: 8px 12px;
+        }
+
         .chat-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .pin-btn {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.5);
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          display: flex;
           opacity: 0;
           transition: opacity 0.2s;
         }
 
-        .conversation-item:hover .chat-actions {
+        .conversation-item:hover .pin-btn,
+        .pin-btn.is-pinned {
           opacity: 1;
+        }
+
+        .pin-btn:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: #fff;
+        }
+
+        .pin-btn.is-pinned {
+          color: #16A34A;
         }
 
         .menu-trigger {
@@ -283,6 +332,12 @@ export default function ChatInterface() {
           padding: 4px;
           border-radius: 4px;
           display: flex;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+
+        .conversation-item:hover .menu-trigger {
+          opacity: 1;
         }
 
         .menu-trigger:hover {

@@ -1,20 +1,42 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
+const STORAGE_KEY = 'chat-app-data';
+
+const defaultChats = [
+  {
+    id: generateId(),
+    title: 'New Chat',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    isPinned: false,
+    messages: [
+      { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
+    ]
+  }
+];
+
 export function useConversations() {
-  const [chats, setChats] = useState([
-    {
-      id: generateId(),
-      title: 'New Chat',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      messages: [
-        { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
-      ]
+  const [chats, setChats] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : defaultChats;
+    } catch (e) {
+      console.error('Failed to load chats from local storage:', e);
+      return defaultChats;
     }
-  ]);
-  const [activeChatId, setActiveChatId] = useState(chats[0].id);
+  });
+
+  const [activeChatId, setActiveChatId] = useState(chats[0]?.id || defaultChats[0].id);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    } catch (e) {
+      console.error('Failed to save chats to local storage:', e);
+    }
+  }, [chats]);
 
   const createNewChat = useCallback(() => {
     const newChat = {
@@ -22,6 +44,7 @@ export function useConversations() {
       title: 'New Chat',
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      isPinned: false,
       messages: [
         { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
       ]
@@ -40,6 +63,7 @@ export function useConversations() {
           title: 'New Chat',
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          isPinned: false,
           messages: [
             { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
           ]
@@ -57,6 +81,12 @@ export function useConversations() {
   const renameChat = useCallback((id, newTitle) => {
     setChats(prev => prev.map(chat => 
       chat.id === id ? { ...chat, title: newTitle, updatedAt: Date.now() } : chat
+    ));
+  }, []);
+
+  const togglePinChat = useCallback((id) => {
+    setChats(prev => prev.map(chat => 
+      chat.id === id ? { ...chat, isPinned: !chat.isPinned, updatedAt: Date.now() } : chat
     ));
   }, []);
 
@@ -87,6 +117,7 @@ export function useConversations() {
     createNewChat,
     deleteChat,
     renameChat,
+    togglePinChat,
     addMessage,
   };
 }

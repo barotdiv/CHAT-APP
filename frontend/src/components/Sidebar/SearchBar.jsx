@@ -1,13 +1,12 @@
 import React from 'react';
 import { TextInput } from '@astryxdesign/core/TextInput';
-import { Search } from 'lucide-react';
 
 export default function SearchBar({ searchQuery, setSearchQuery }) {
   return (
     <div className="sidebar-search">
       <div className="search-input-wrapper">
-        <Search size={16} className="search-icon" />
         <TextInput
+          size="lg"
           placeholder="Search chats..."
           value={searchQuery}
           onChange={setSearchQuery}
