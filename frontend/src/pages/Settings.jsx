@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useThemeContext } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Trash2 } from 'lucide-react';
 import { Button } from '@astryxdesign/core/Button';
@@ -9,7 +10,7 @@ export default function Settings() {
   const navigate = useNavigate();
 
   // Mock settings state
-  const [theme, setTheme] = useState('dark');
+  const { theme, setTheme } = useThemeContext();
   const [fontSize, setFontSize] = useState('medium');
   const [timestamps, setTimestamps] = useState(true);
   const [enterToSend, setEnterToSend] = useState(true);
@@ -202,7 +203,7 @@ export default function Settings() {
           justify-content: center;
           padding: 32px 24px;
           overflow-y: auto;
-          color: #fff;
+          color: var(--text-main);
         }
 
         .settings-container {
@@ -223,8 +224,8 @@ export default function Settings() {
         }
 
         .settings-section {
-          background-color: #15171E;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background-color: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 16px;
           padding: 24px 32px;
         }
@@ -232,10 +233,10 @@ export default function Settings() {
         .settings-section h2 {
           font-size: 1.1rem;
           font-weight: 600;
-          color: #fff;
+          color: var(--text-main);
           margin-bottom: 20px;
           padding-bottom: 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid var(--border-color);
         }
 
         .setting-item {
@@ -246,7 +247,7 @@ export default function Settings() {
         }
 
         .setting-item:not(:last-child) {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+          border-bottom: 1px solid var(--border-color);
         }
 
         .setting-info {
@@ -259,27 +260,27 @@ export default function Settings() {
         .setting-info label {
           font-size: 0.95rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-main);
         }
 
         .setting-info p {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           margin: 0;
         }
 
         .setting-value {
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-muted);
           font-size: 0.9rem;
           padding: 8px 12px;
         }
 
         /* Select styling */
         .setting-select {
-          background-color: #1A1C23;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: var(--bg-input);
+          border: 1px solid var(--border-color);
           border-radius: 8px;
-          color: #fff;
+          color: var(--text-main);
           padding: 8px 12px;
           font-size: 0.9rem;
           cursor: pointer;
@@ -288,7 +289,7 @@ export default function Settings() {
         
         .setting-select:focus {
           outline: none;
-          border-color: #3B82F6;
+          border-color: var(--btn-primary-bg);
         }
 
         /* Toggle styling */
@@ -308,7 +309,7 @@ export default function Settings() {
           position: absolute;
           cursor: pointer;
           top: 0; left: 0; right: 0; bottom: 0;
-          background-color: rgba(255, 255, 255, 0.1);
+          background-color: var(--border-highlight);
           transition: .3s;
           border-radius: 24px;
         }
@@ -319,12 +320,12 @@ export default function Settings() {
           width: 18px;
           left: 3px;
           bottom: 3px;
-          background-color: white;
+          background-color: var(--bg-card);
           transition: .3s;
           border-radius: 50%;
         }
         input:checked + .slider {
-          background-color: #3B82F6;
+          background-color: var(--btn-primary-bg);
         }
         input:checked + .slider:before {
           transform: translateX(20px);
@@ -334,21 +335,21 @@ export default function Settings() {
           justify-content: flex-start;
           gap: 16px;
           padding-top: 24px !important;
-          border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-top: 1px solid var(--border-color) !important;
           margin-top: 12px;
         }
 
         .secondary-btn {
-          background-color: rgba(255, 255, 255, 0.05) !important;
-          color: #fff !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--hover-overlay) !important;
+          color: var(--text-main) !important;
+          border: 1px solid var(--border-highlight) !important;
           border-radius: 8px !important;
           padding: 8px 16px !important;
           font-size: 0.9rem !important;
         }
 
         .secondary-btn:hover {
-          background-color: rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--border-highlight) !important;
         }
 
         .danger-text-btn {
@@ -367,17 +368,17 @@ export default function Settings() {
         }
 
         .danger-text-btn:hover {
-          background-color: rgba(239, 68, 68, 0.1);
+          background-color: var(--danger-hover);
         }
 
         .about-info p {
           font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-muted);
           margin-bottom: 8px;
         }
         
         .about-info strong {
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-main);
         }
 
         .about-links {
@@ -388,7 +389,7 @@ export default function Settings() {
         }
 
         .about-links a {
-          color: #3B82F6;
+          color: var(--btn-primary-bg);
           text-decoration: none;
           font-size: 0.9rem;
         }
@@ -398,7 +399,7 @@ export default function Settings() {
         }
 
         .about-links .dot {
-          color: rgba(255, 255, 255, 0.3);
+          color: var(--text-faded);
           font-size: 0.8rem;
         }
 

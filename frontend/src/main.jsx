@@ -8,17 +8,20 @@ import { Link } from 'react-router-dom'
 import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Theme theme={stoneTheme}>
-          <LinkProvider component={Link}>
-            <App />
-          </LinkProvider>
-        </Theme>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Theme theme={stoneTheme}>
+            <LinkProvider component={Link}>
+              <App />
+            </LinkProvider>
+          </Theme>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

@@ -114,7 +114,7 @@ export default function Profile() {
           justify-content: center;
           padding: 32px 24px;
           overflow-y: auto;
-          color: #fff;
+          color: var(--text-main);
         }
 
         .profile-container {
@@ -129,8 +129,8 @@ export default function Profile() {
         }
 
         .profile-card {
-          background-color: #15171E;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background-color: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 16px;
           padding: 32px;
           display: flex;
@@ -152,8 +152,8 @@ export default function Profile() {
           border-radius: 50%;
           cursor: pointer;
           overflow: hidden;
-          background-color: #2D303E;
-          border: 2px solid rgba(255, 255, 255, 0.1);
+          background-color: var(--bg-avatar);
+          border: 2px solid var(--border-highlight);
         }
 
         .avatar-preview {
@@ -173,7 +173,7 @@ export default function Profile() {
         .avatar-initials {
           font-size: 2rem;
           font-weight: 600;
-          color: #fff;
+          color: var(--text-main);
         }
 
         .avatar-overlay {
@@ -196,7 +196,7 @@ export default function Profile() {
 
         .avatar-hint {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
         }
 
         .info-section {
@@ -214,30 +214,30 @@ export default function Profile() {
         .form-group label {
           font-size: 0.85rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--text-main);
         }
 
         .form-group :global(.astryx-text-input-field) {
-          background-color: #1A1C23 !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--bg-input) !important;
+          border: 1px solid var(--border-color) !important;
           border-radius: 12px !important;
-          color: #ffffff !important;
+          color: var(--text-main) !important;
           padding: 12px 16px !important;
           font-size: 0.95rem !important;
         }
 
         .form-group :global(.astryx-text-input-field:focus) {
-          border-color: #3B82F6 !important;
-          box-shadow: 0 0 0 1px #3B82F6 !important;
+          border-color: var(--btn-primary-bg) !important;
+          box-shadow: 0 0 0 1px var(--btn-primary-bg) !important;
         }
 
         .readonly-field {
-          background-color: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background-color: var(--hover-overlay);
+          border: 1px solid var(--border-highlight);
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 0.95rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           cursor: not-allowed;
         }
 
@@ -256,7 +256,7 @@ export default function Profile() {
 
         .info-item div {
           font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-muted);
         }
 
         .action-section {
@@ -266,15 +266,15 @@ export default function Profile() {
         }
 
         .save-btn {
-          background-color: #3B82F6 !important;
-          color: #fff !important;
+          background-color: var(--btn-primary-bg) !important;
+          color: var(--btn-white-text) !important;
           border-radius: 12px !important;
           padding: 10px 24px !important;
           font-weight: 600 !important;
         }
 
         .save-btn:hover {
-          background-color: #2563EB !important;
+          background-color: var(--btn-primary-hover) !important;
         }
 
         @media (max-width: 480px) {

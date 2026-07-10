@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Sun, Moon } from 'lucide-react';
 import ChatInterface from './pages/ChatInterface';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
@@ -9,10 +9,12 @@ import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfileDropdown from './components/ProfileDropdown';
 import { useAuth } from './context/AuthContext';
+import { useThemeContext } from './context/ThemeContext';
 
 export default function App() {
   const location = useLocation();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useThemeContext();
   const isSignIn = location.pathname === '/signin';
   const isSignUp = location.pathname === '/signup';
   const hideNav = isSignIn || isSignUp;
@@ -42,7 +44,13 @@ export default function App() {
               </Link>
             )}
           </div>
-          {user && <ProfileDropdown />}
+          
+          <div className="nav-actions">
+            <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Toggle theme">
+              {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+            {user && <ProfileDropdown />}
+          </div>
         </nav>
       )}
 
@@ -80,8 +88,8 @@ export default function App() {
           height: 100vh;
           width: 100vw;
           overflow: hidden;
-          background-color: #0F1117;
-          color: var(--color-text-primary, #fff);
+          background-color: var(--bg-app);
+          color: var(--text-main);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         .top-nav {
@@ -89,8 +97,8 @@ export default function App() {
           align-items: center;
           padding: 0 var(--spacing-6, 24px);
           height: 64px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          background-color: #0F1117;
+          border-bottom: 1px solid var(--border-color);
+          background-color: var(--bg-app);
         }
         .nav-brand {
           display: flex;
@@ -107,12 +115,34 @@ export default function App() {
           gap: 8px;
           height: 100%;
         }
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          margin-left: auto;
+          gap: 16px;
+        }
+        .theme-toggle-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          border-radius: 50%;
+          transition: background-color 0.2s, color 0.2s;
+        }
+        .theme-toggle-btn:hover {
+          background-color: var(--hover-overlay);
+          color: var(--text-main);
+        }
         .nav-link {
           display: flex;
           align-items: center;
           gap: 8px;
           padding: 0 16px;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
           text-decoration: none;
           font-weight: 500;
           font-size: 0.95rem;
@@ -120,10 +150,10 @@ export default function App() {
           transition: color 0.2s;
         }
         .nav-link:hover {
-          color: #fff;
+          color: var(--text-main);
         }
         .nav-link.active {
-          color: #fff;
+          color: var(--text-main);
         }
         .nav-link.active::after {
           content: '';
@@ -132,7 +162,7 @@ export default function App() {
           left: 0;
           right: 0;
           height: 2px;
-          background-color: #fff;
+          background-color: var(--nav-active-border);
           border-radius: 2px 2px 0 0;
         }
         .main-content {

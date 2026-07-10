@@ -146,8 +146,8 @@ export default function SignUp() {
           justify-content: center;
           min-height: 100vh;
           width: 100%;
-          background-color: #0F1117;
-          color: #ffffff;
+          background-color: var(--bg-app);
+          color: var(--text-main);
           padding: 24px;
           animation: fadeInPage 0.4s ease-out;
         }
@@ -156,8 +156,8 @@ export default function SignUp() {
           box-sizing: border-box;
           width: 100%;
           max-width: 440px;
-          background-color: #15171E;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background-color: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 20px;
           padding: 40px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -173,12 +173,12 @@ export default function SignUp() {
           font-size: 1.5rem;
           font-weight: 600;
           margin: 0 0 8px 0;
-          color: #ffffff;
+          color: var(--text-main);
         }
 
         .signin-header p {
           font-size: 0.95rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
           margin: 0;
         }
 
@@ -198,24 +198,24 @@ export default function SignUp() {
         .input-group :global(label) {
           font-size: 0.85rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--text-main);
           margin-bottom: 4px;
           display: block;
         }
 
         .input-group :global(.astryx-text-input-field) {
-          background-color: #1A1C23 !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--bg-input) !important;
+          border: 1px solid var(--border-color) !important;
           border-radius: 12px !important;
-          color: #ffffff !important;
+          color: var(--text-main) !important;
           padding: 12px 16px !important;
           font-size: 0.95rem !important;
           transition: border-color 0.2s, box-shadow 0.2s !important;
         }
 
         .input-group :global(.astryx-text-input-field:focus) {
-          border-color: #16A34A !important;
-          box-shadow: 0 0 0 1px #16A34A !important;
+          border-color: var(--btn-success-bg) !important;
+          box-shadow: 0 0 0 1px var(--btn-success-bg) !important;
         }
 
         .error-text {
@@ -226,8 +226,8 @@ export default function SignUp() {
 
         .signup-btn {
           width: 100% !important;
-          background-color: #16A34A !important;
-          color: #ffffff !important;
+          background-color: var(--btn-success-bg) !important;
+          color: var(--btn-white-text) !important;
           border-radius: 12px !important;
           padding: 12px !important;
           font-weight: 600 !important;
@@ -239,7 +239,7 @@ export default function SignUp() {
         }
 
         .signup-btn:hover {
-          background-color: #15803d !important;
+          background-color: var(--btn-success-hover) !important;
           transform: scale(1.02);
         }
 
@@ -258,12 +258,12 @@ export default function SignUp() {
         .divider-line {
           height: 1px;
           flex: 1;
-          background-color: rgba(255, 255, 255, 0.1);
+          background-color: var(--border-highlight);
         }
 
         .divider span {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           white-space: nowrap;
         }
 
@@ -275,9 +275,9 @@ export default function SignUp() {
 
         .social-btn {
           width: 100% !important;
-          background-color: #1A1C23 !important;
-          color: #ffffff !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--bg-input) !important;
+          color: var(--text-main) !important;
+          border: 1px solid var(--border-highlight) !important;
           border-radius: 12px !important;
           padding: 12px !important;
           font-weight: 500 !important;
@@ -290,7 +290,7 @@ export default function SignUp() {
         }
 
         .social-btn:hover {
-          background-color: #272A35 !important;
+          background-color: var(--bg-avatar) !important;
           transform: scale(1.02);
         }
 
@@ -298,11 +298,11 @@ export default function SignUp() {
           text-align: center;
           margin-top: 32px;
           font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
         }
 
         .signin-footer .link {
-          color: #ffffff;
+          color: var(--text-main);
           font-weight: 500;
           text-decoration: none;
           margin-left: 4px;

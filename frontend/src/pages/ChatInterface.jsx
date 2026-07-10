@@ -132,15 +132,15 @@ export default function ChatInterface() {
           height: 100%;
           width: 100%;
           overflow: hidden;
-          background-color: #0F1117;
+          background-color: var(--bg-app);
         }
 
         /* Sidebar Base Styles */
         .sidebar-container {
           width: 280px;
           height: 100%;
-          background-color: #15171e;
-          border-right: 1px solid rgba(255, 255, 255, 0.05);
+          background-color: var(--bg-card);
+          border-right: 1px solid var(--border-color);
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
@@ -159,7 +159,7 @@ export default function ChatInterface() {
           font-size: 1.15rem;
           font-weight: 600;
           margin: 0;
-          color: #ffffff;
+          color: var(--text-main);
         }
 
         .new-chat-btn {
@@ -188,18 +188,19 @@ export default function ChatInterface() {
         .search-icon {
           position: absolute;
           left: 12px;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           z-index: 1;
         }
 
         .sidebar-search :global(.astryx-text-input-field) {
-          background-color: #1A1C23 !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--bg-input) !important;
+          border: 1px solid var(--border-highlight) !important;
           border-radius: 8px !important;
           padding: 12px 16px !important;
           font-size: 1.05rem !important;
           width: 100% !important;
           box-sizing: border-box !important;
+          color: var(--text-main) !important;
         }
 
         .sidebar-scroll-area {
@@ -212,12 +213,12 @@ export default function ChatInterface() {
           width: 6px;
         }
         .sidebar-scroll-area::-webkit-scrollbar-thumb {
-          background-color: rgba(255, 255, 255, 0.1);
+          background-color: var(--border-highlight);
           border-radius: 4px;
         }
 
         .empty-list {
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           font-size: 0.9rem;
           text-align: center;
           margin-top: 24px;
@@ -230,8 +231,9 @@ export default function ChatInterface() {
           border-radius: 8px;
           cursor: pointer;
           gap: 12px;
-          color: rgba(255, 255, 255, 0.7);
-          transition: background-color 0.2s;
+          color: var(--text-main);
+          opacity: 0.8;
+          transition: background-color 0.2s, opacity 0.2s;
           margin-bottom: 6px;
           position: relative;
           width: 100%;
@@ -239,8 +241,8 @@ export default function ChatInterface() {
         }
 
         .conversation-item:hover, .conversation-item.active {
-          background-color: #272A35;
-          color: #ffffff;
+          background-color: var(--hover-overlay);
+          opacity: 1;
         }
 
         .chat-icon {
@@ -265,7 +267,7 @@ export default function ChatInterface() {
         .chat-rename-input {
           background: transparent;
           border: none;
-          color: #ffffff;
+          color: var(--text-main);
           font-size: 0.9rem;
           font-weight: 500;
           outline: none;
@@ -275,7 +277,7 @@ export default function ChatInterface() {
 
         .chat-time {
           font-size: 0.75rem;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-faded);
           margin-top: 2px;
         }
 
@@ -286,7 +288,7 @@ export default function ChatInterface() {
         .chat-section-title {
           font-size: 0.75rem;
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-faded);
           font-weight: 600;
           letter-spacing: 0.05em;
           margin: 8px 12px;
@@ -301,7 +303,7 @@ export default function ChatInterface() {
         .pin-btn {
           background: transparent;
           border: none;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           cursor: pointer;
           padding: 4px;
           border-radius: 4px;
@@ -316,18 +318,18 @@ export default function ChatInterface() {
         }
 
         .pin-btn:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-          color: #fff;
+          background-color: var(--hover-overlay);
+          color: var(--text-main);
         }
 
         .pin-btn.is-pinned {
-          color: #16A34A;
+          color: var(--btn-success-bg);
         }
 
         .menu-trigger {
           background: transparent;
           border: none;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           cursor: pointer;
           padding: 4px;
           border-radius: 4px;
@@ -341,8 +343,8 @@ export default function ChatInterface() {
         }
 
         .menu-trigger:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-          color: #fff;
+          background-color: var(--hover-overlay);
+          color: var(--text-main);
         }
 
         .conversation-menu-container {
@@ -353,8 +355,8 @@ export default function ChatInterface() {
           position: absolute;
           right: 0;
           top: 100%;
-          background-color: #1A1C23;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 8px;
           padding: 4px;
           z-index: 50;
@@ -370,7 +372,7 @@ export default function ChatInterface() {
           padding: 8px 12px;
           background: transparent;
           border: none;
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--text-main);
           font-size: 0.85rem;
           cursor: pointer;
           border-radius: 4px;
@@ -378,8 +380,7 @@ export default function ChatInterface() {
         }
 
         .menu-item:hover {
-          background-color: #272A35;
-          color: #fff;
+          background-color: var(--hover-overlay);
         }
 
         .menu-item.delete:hover {
@@ -394,7 +395,7 @@ export default function ChatInterface() {
           left: 16px;
           background: transparent;
           border: none;
-          color: #fff;
+          color: var(--text-main);
           cursor: pointer;
           z-index: 30;
           padding: 8px;
@@ -407,7 +408,7 @@ export default function ChatInterface() {
           right: -48px;
           background: transparent;
           border: none;
-          color: #fff;
+          color: var(--text-main);
           cursor: pointer;
           padding: 8px;
         }
@@ -464,11 +465,11 @@ export default function ChatInterface() {
         .divider-line {
           height: 1px;
           flex: 0.15;
-          background-color: rgba(255, 255, 255, 0.1);
+          background-color: var(--border-highlight);
         }
         .divider-text {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           font-weight: 500;
         }
         .message-row {
@@ -490,13 +491,13 @@ export default function ChatInterface() {
         }
         .message-bubble.ai {
           background-color: transparent;
-          color: #fff;
+          color: var(--text-main);
           padding: 8px 0;
         }
         .message-bubble.user {
-          background-color: #2A2D3E;
-          color: #ffffff;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background-color: var(--bg-input);
+          color: var(--text-main);
+          border: 1px solid var(--border-color);
           border-radius: 20px;
           padding: 12px 20px;
         }

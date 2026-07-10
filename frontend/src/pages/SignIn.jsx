@@ -105,8 +105,8 @@ export default function SignIn() {
           justify-content: center;
           min-height: 100vh;
           width: 100%;
-          background-color: #0F1117;
-          color: #ffffff;
+          background-color: var(--bg-app);
+          color: var(--text-main);
           padding: 24px;
           animation: fadeInPage 0.4s ease-out;
         }
@@ -120,7 +120,7 @@ export default function SignIn() {
         }
 
         .logo-icon {
-          color: #ffffff;
+          color: var(--text-main);
         }
 
         .logo-text {
@@ -133,8 +133,8 @@ export default function SignIn() {
           box-sizing: border-box;
           width: 100%;
           max-width: 440px;
-          background-color: #15171E;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background-color: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 20px;
           padding: 40px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -150,12 +150,12 @@ export default function SignIn() {
           font-size: 1.5rem;
           font-weight: 600;
           margin: 0 0 8px 0;
-          color: #ffffff;
+          color: var(--text-main);
         }
 
         .signin-header p {
           font-size: 0.95rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
           margin: 0;
         }
 
@@ -166,28 +166,28 @@ export default function SignIn() {
         }
 
         .input-group :global(.astryx-text-input-field) {
-          background-color: #1A1C23 !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--bg-input) !important;
+          border: 1px solid var(--border-color) !important;
           border-radius: 12px !important;
-          color: #ffffff !important;
+          color: var(--text-main) !important;
           padding: 12px 16px !important;
           font-size: 0.95rem !important;
           transition: border-color 0.2s, box-shadow 0.2s !important;
         }
 
         .input-group :global(.astryx-text-input-field:focus) {
-          border-color: #16A34A !important;
-          box-shadow: 0 0 0 1px #16A34A !important;
+          border-color: var(--btn-success-bg) !important;
+          box-shadow: 0 0 0 1px var(--btn-success-bg) !important;
         }
 
         .input-group :global(.astryx-text-input-field::placeholder) {
-          color: rgba(255, 255, 255, 0.4) !important;
+          color: var(--text-placeholder) !important;
         }
 
         .login-btn {
           width: 100% !important;
-          background-color: #ffffff !important;
-          color: #0F1117 !important;
+          background-color: var(--btn-white-bg) !important;
+          color: var(--btn-white-text) !important;
           border-radius: 12px !important;
           padding: 12px !important;
           font-weight: 600 !important;
@@ -214,12 +214,12 @@ export default function SignIn() {
         .divider-line {
           height: 1px;
           flex: 1;
-          background-color: rgba(255, 255, 255, 0.1);
+          background-color: var(--border-highlight);
         }
 
         .divider span {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           white-space: nowrap;
         }
 
@@ -231,9 +231,9 @@ export default function SignIn() {
 
         .social-btn {
           width: 100% !important;
-          background-color: #1A1C23 !important;
-          color: #ffffff !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background-color: var(--bg-input) !important;
+          color: var(--text-main) !important;
+          border: 1px solid var(--border-highlight) !important;
           border-radius: 12px !important;
           padding: 12px !important;
           font-weight: 500 !important;
@@ -246,7 +246,7 @@ export default function SignIn() {
         }
 
         .social-btn:hover {
-          background-color: #272A35 !important;
+          background-color: var(--bg-avatar) !important;
           transform: scale(1.02);
         }
 
@@ -254,11 +254,11 @@ export default function SignIn() {
           text-align: center;
           margin-top: 32px;
           font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
         }
 
         .signin-footer .link {
-          color: #ffffff;
+          color: var(--text-main);
           font-weight: 500;
           text-decoration: none;
           margin-left: 4px;
@@ -272,17 +272,17 @@ export default function SignIn() {
           max-width: 400px;
           text-align: center;
           font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-faded);
           line-height: 1.5;
         }
 
         .terms-text .link {
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
           text-decoration: none;
         }
 
         .terms-text .link:hover {
-          color: #ffffff;
+          color: var(--text-main);
           text-decoration: underline;
         }
 

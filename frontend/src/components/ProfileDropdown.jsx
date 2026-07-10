@@ -89,22 +89,22 @@ export default function ProfileDropdown() {
         }
 
         .profile-trigger:hover {
-          background-color: rgba(255, 255, 255, 0.05);
+          background-color: var(--hover-overlay);
         }
 
         .avatar {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background-color: #2D303E;
+          background-color: var(--bg-avatar);
           display: flex;
           align-items: center;
           justify-content: center;
           overflow: hidden;
           font-weight: 600;
           font-size: 0.85rem;
-          color: #fff;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: var(--text-main);
+          border: 1px solid var(--border-highlight);
         }
 
         .avatar img {
@@ -116,7 +116,7 @@ export default function ProfileDropdown() {
         .profile-name {
           font-size: 0.95rem;
           font-weight: 500;
-          color: #fff;
+          color: var(--text-main);
         }
 
         .dropdown-menu {
@@ -124,8 +124,8 @@ export default function ProfileDropdown() {
           top: calc(100% + 8px);
           right: 0;
           width: 220px;
-          background-color: #15171E;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 12px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
           padding: 8px 0;
@@ -142,12 +142,12 @@ export default function ProfileDropdown() {
         .dropdown-name {
           font-size: 0.95rem;
           font-weight: 600;
-          color: #fff;
+          color: var(--text-main);
         }
 
         .dropdown-email {
           font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
           margin-top: 2px;
           white-space: nowrap;
           overflow: hidden;
@@ -156,7 +156,7 @@ export default function ProfileDropdown() {
 
         .dropdown-divider {
           height: 1px;
-          background-color: rgba(255, 255, 255, 0.08);
+          background-color: var(--border-color);
           margin: 4px 0;
         }
 
@@ -168,7 +168,7 @@ export default function ProfileDropdown() {
           padding: 10px 16px;
           background: transparent;
           border: none;
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--text-muted);
           font-size: 0.9rem;
           font-weight: 500;
           cursor: pointer;
@@ -177,8 +177,8 @@ export default function ProfileDropdown() {
         }
 
         .dropdown-item:hover {
-          background-color: rgba(255, 255, 255, 0.05);
-          color: #fff;
+          background-color: var(--hover-overlay);
+          color: var(--text-main);
         }
 
         .dropdown-item.text-danger {
@@ -186,7 +186,7 @@ export default function ProfileDropdown() {
         }
 
         .dropdown-item.text-danger:hover {
-          background-color: rgba(239, 68, 68, 0.1);
+          background-color: var(--danger-hover);
         }
 
         @keyframes slideDown {
