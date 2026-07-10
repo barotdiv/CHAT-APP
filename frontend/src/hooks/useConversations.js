@@ -12,7 +12,8 @@ const defaultChats = [
     updatedAt: Date.now(),
     isPinned: false,
     messages: [
-      { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
+      { id: generateId(), role: 'ai', content: `Welcome! 👋
+I'm your AI assistant. Ask me anything, and I'll help you find answers, solve problems, or build your next idea.`, timestamp: Date.now() }
     ]
   }
 ];
@@ -46,7 +47,8 @@ export function useConversations() {
       updatedAt: Date.now(),
       isPinned: false,
       messages: [
-        { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
+        { id: generateId(), role: 'ai', content: `Welcome! 👋
+I'm your AI assistant. Ask me anything, and I'll help you find answers, solve problems, or build your next idea.`, timestamp: Date.now() }
       ]
     };
     setChats(prev => [newChat, ...prev]);
@@ -65,7 +67,8 @@ export function useConversations() {
           updatedAt: Date.now(),
           isPinned: false,
           messages: [
-            { id: generateId(), role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?', timestamp: Date.now() }
+            { id: generateId(), role: 'ai', content: `Welcome! 👋
+I'm your AI assistant. Ask me anything, and I'll help you find answers, solve problems, or build your next idea.`, timestamp: Date.now() }
           ]
         };
         setActiveChatId(newChat.id);

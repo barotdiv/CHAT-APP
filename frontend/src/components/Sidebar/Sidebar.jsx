@@ -4,13 +4,13 @@ import SearchBar from './SearchBar';
 import ConversationList from './ConversationList';
 import { Menu, X } from 'lucide-react';
 
-export default function Sidebar({ 
-  chats, activeChatId, onNewChat, onSelectChat, onRenameChat, onDeleteChat, onTogglePin 
+export default function Sidebar({
+  chats, activeChatId, onNewChat, onSelectChat, onRenameChat, onDeleteChat, onTogglePin
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const filteredChats = chats.filter(c => 
+  const filteredChats = chats.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -18,8 +18,8 @@ export default function Sidebar({
 
   return (
     <>
-      <button 
-        className="mobile-menu-btn" 
+      <button
+        className="mobile-menu-btn"
         onClick={toggleMobileSidebar}
         aria-label="Toggle sidebar"
       >
@@ -43,7 +43,7 @@ export default function Sidebar({
         }} />
         <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <div className="sidebar-scroll-area">
-          <ConversationList 
+          <ConversationList
             chats={filteredChats}
             activeChatId={activeChatId}
             onSelectChat={(id) => {
