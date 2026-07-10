@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp } from 'lucide-react';
-import { TextInput } from '@astryxdesign/core/TextInput';
-import { Button } from '@astryxdesign/core/Button';
+import { ChatComposer, ChatSendButton } from '@astryxdesign/core';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState([
@@ -20,11 +18,17 @@ export default function ChatInterface() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = (e) => {
-    if (e) e.preventDefault();
-    if (!input.trim()) return;
+  const handleSend = (textOrEvent) => {
+    let textToSend = input;
+    if (textOrEvent && typeof textOrEvent.preventDefault === 'function') {
+      textOrEvent.preventDefault();
+    } else if (typeof textOrEvent === 'string') {
+      textToSend = textOrEvent;
+    }
+
+    if (!textToSend.trim()) return;
     
-    const userMsg = { id: Date.now(), role: 'user', content: input };
+    const userMsg = { id: Date.now(), role: 'user', content: textToSend };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     
@@ -55,28 +59,13 @@ export default function ChatInterface() {
       </div>
 
       <div className="chat-input-area">
-        <form onSubmit={handleSend} className="input-form">
-          <div className="input-wrapper">
-            <TextInput 
-              label="Ask something..." 
-              isLabelHidden
-              placeholder="Ask something..." 
-              value={input}
-              onChange={setInput}
-            />
-          </div>
-          <div className="send-btn-wrapper">
-            <Button 
-              type="submit" 
-              variant="primary" 
-              label="Send"
-              icon={<ArrowUp size={18} strokeWidth={3} />} 
-              isIconOnly
-              isDisabled={!input.trim()}
-              className="send-btn"
-            />
-          </div>
-        </form>
+        <ChatComposer
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSend}
+          placeholder="Type a message..."
+          sendButton={<ChatSendButton />}
+        />
       </div>
 
       <style>{`
@@ -151,62 +140,17 @@ export default function ChatInterface() {
           padding: 24px 32px;
           background-color: transparent;
         }
-        .input-form {
-          position: relative;
-          background-color: #1A1C23;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 24px;
-          padding: 16px 60px 16px 24px;
-          min-height: 72px;
-          display: flex;
-          align-items: center;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .input-form:focus-within {
-          border-color: #16A34A;
-          box-shadow: 0 0 0 1px #16A34A;
-        }
-        .input-wrapper {
-          flex: 1;
-          width: 100%;
-        }
-        /* Override Astryx TextInput base styles */
-        .input-wrapper :global(.astryx-text-input-field) {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          padding: 0 !important;
-          color: #fff !important;
-          font-size: 1rem !important;
-        }
-        .input-wrapper :global(.astryx-text-input-field:focus) {
-          box-shadow: none !important;
-        }
-        .input-wrapper :global(.astryx-text-input-field::placeholder) {
-          color: rgba(255, 255, 255, 0.4) !important;
-        }
-        .send-btn-wrapper {
-          position: absolute;
-          right: 12px;
-          bottom: 12px;
-        }
-        .send-btn {
+        .chat-input-area :global([data-astryx-theme="chat-send-button"]) {
           background-color: #16A34A !important;
           color: #ffffff !important;
           border-radius: 50% !important;
-          width: 40px !important;
-          height: 40px !important;
-          padding: 0 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
           transition: transform 0.2s ease, background-color 0.2s !important;
         }
-        .send-btn:hover:not(:disabled) {
+        .chat-input-area :global([data-astryx-theme="chat-send-button"]:hover:not(:disabled)) {
           background-color: #15803d !important;
           transform: scale(1.05);
         }
-        .send-btn:disabled {
+        .chat-input-area :global([data-astryx-theme="chat-send-button"]:disabled) {
           opacity: 0.5 !important;
           cursor: not-allowed !important;
           background-color: rgba(255, 255, 255, 0.1) !important;

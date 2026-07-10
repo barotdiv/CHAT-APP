@@ -110,14 +110,22 @@ export default function SignUp() {
         <div className="social-buttons">
           <Button
             label="Sign up with Apple"
-            icon={<img src="/assets/apple.svg" alt="Apple" width="18" height="18" />}
             className="social-btn"
-          />
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <img src="/assets/apple.svg" alt="Apple" style={{ width: '24px', height: '24px' }} />
+              <span>Sign up with Apple</span>
+            </div>
+          </Button>
           <Button
             label="Sign up with Google"
-            icon={<img src="/assets/google.svg" alt="Google" width="18" height="18" />}
             className="social-btn"
-          />
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <img src="/assets/google.svg" alt="Google" style={{ width: '24px', height: '24px' }} />
+              <span>Sign up with Google</span>
+            </div>
+          </Button>
         </div>
 
         <div className="signin-footer">
@@ -280,10 +288,6 @@ export default function SignUp() {
         .social-btn:hover {
           background-color: #272A35 !important;
           transform: scale(1.02);
-        }
-
-        .social-btn img {
-          margin-right: 8px;
         }
 
         .signin-footer {
