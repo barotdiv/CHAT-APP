@@ -1,12 +1,18 @@
 import React from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import ChatInterface from './pages/ChatInterface';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import ProtectedRoute from './components/ProtectedRoute';
+import ProfileDropdown from './components/ProfileDropdown';
+import { useAuth } from './context/AuthContext';
 
 export default function App() {
   const location = useLocation();
+  const { user } = useAuth();
   const isSignIn = location.pathname === '/signin';
   const isSignUp = location.pathname === '/signup';
   const hideNav = isSignIn || isSignUp;
@@ -30,18 +36,37 @@ export default function App() {
               <span>Chat Interface</span>
             </Link>
 
-            <Link to="/signin" className={getNavClass('/signin')}>
-              <span>Sign In</span>
-            </Link>
+            {!user && (
+              <Link to="/signin" className={getNavClass('/signin')}>
+                <span>Sign In</span>
+              </Link>
+            )}
           </div>
+          {user && <ProfileDropdown />}
         </nav>
       )}
 
       {/* Main Content Area */}
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<ChatInterface />} />
-          <Route path="/chat" element={<ChatInterface />} />
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/chat" element={
+            <ProtectedRoute>
+              <ChatInterface />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
 
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />

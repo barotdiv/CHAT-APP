@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Button } from '@astryxdesign/core/Button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignUp() {
   const [fullName, setFullName] = useState('');
@@ -10,6 +11,8 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const validate = () => {
     const newErrors = {};
@@ -42,7 +45,8 @@ export default function SignUp() {
       setIsLoading(true);
       setTimeout(() => {
         setIsLoading(false);
-        // signup logic would go here
+        signup(fullName, email);
+        navigate('/chat');
       }, 1500);
     }
   };
