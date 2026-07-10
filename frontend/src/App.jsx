@@ -1,8 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { MessageSquare, Settings2 } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import ChatInterface from './pages/ChatInterface';
-import PromptLab from './pages/PromptLab';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 
@@ -30,10 +29,7 @@ export default function App() {
               <MessageSquare size={18} />
               <span>Chat Interface</span>
             </Link>
-            <Link to="/prompt-lab" className={getNavClass('/prompt-lab')}>
-              <Settings2 size={18} />
-              <span>Prompt Lab</span>
-            </Link>
+
             <Link to="/signin" className={getNavClass('/signin')}>
               <span>Sign In</span>
             </Link>
@@ -46,7 +42,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<ChatInterface />} />
           <Route path="/chat" element={<ChatInterface />} />
-          <Route path="/prompt-lab" element={<PromptLab />} />
+
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
         </Routes>
