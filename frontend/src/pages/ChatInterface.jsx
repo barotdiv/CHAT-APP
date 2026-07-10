@@ -172,9 +172,10 @@ export default function ChatInterface() {
           padding: 8px 0;
         }
         .message-bubble.user {
-          background-color: #16A34A;
+          background-color: #2A2D3E;
           color: #ffffff;
-          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 20px;
           padding: 12px 20px;
         }
         .chat-input-area {
