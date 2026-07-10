@@ -1,12 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatComposer, ChatSendButton } from '@astryxdesign/core';
+import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
+import { Mic } from 'lucide-react';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState([
     { id: 1, role: 'ai', content: 'Hello! I am your AI assistant. How can I help you build amazing tools today?' }
   ]);
   const [input, setInput] = useState('');
+  const [baseInput, setBaseInput] = useState('');
   const chatHistoryRef = useRef(null);
+
+  const { isListening, transcript, isSupported, error, toggleListening } = useSpeechRecognition();
+  const prevListening = useRef(false);
+
+  useEffect(() => {
+    if (isListening && !prevListening.current) {
+      setBaseInput(input);
+    }
+    prevListening.current = isListening;
+  }, [isListening, input]);
+
+  useEffect(() => {
+    if (isListening && transcript) {
+      const space = baseInput && !baseInput.endsWith(' ') ? ' ' : '';
+      setInput(baseInput + space + transcript);
+    }
+  }, [transcript, isListening, baseInput]);
 
   const scrollToBottom = () => {
     if (chatHistoryRef.current) {
@@ -31,6 +51,7 @@ export default function ChatInterface() {
     const userMsg = { id: Date.now(), role: 'user', content: textToSend };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setBaseInput('');
     
     setTimeout(() => {
       setMessages((prev) => [
@@ -39,6 +60,13 @@ export default function ChatInterface() {
       ]);
     }, 1000);
   };
+
+  let composerStatus = undefined;
+  if (!isSupported) {
+    composerStatus = { type: 'warning', message: 'Speech recognition is not supported in this browser.' };
+  } else if (error) {
+    composerStatus = { type: 'error', message: error };
+  }
 
   return (
     <div className="chat-container">
@@ -64,6 +92,19 @@ export default function ChatInterface() {
           onChange={setInput}
           onSubmit={handleSend}
           placeholder="Type a message..."
+          status={composerStatus}
+          sendActions={
+            <Button
+              variant="ghost"
+              size="md"
+              icon={<Mic size={18} strokeWidth={2.5} />}
+              isIconOnly
+              aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+              onClick={toggleListening}
+              className={isListening ? 'mic-listening' : ''}
+              style={{ marginRight: '8px' }}
+            />
+          }
           sendButton={<ChatSendButton />}
         />
       </div>
@@ -155,6 +196,19 @@ export default function ChatInterface() {
           cursor: not-allowed !important;
           background-color: rgba(255, 255, 255, 0.1) !important;
           color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .mic-listening {
+          background-color: #16A34A !important;
+          color: #ffffff !important;
+          border-radius: 50% !important;
+          animation: pulseMic 1.5s infinite;
+        }
+
+        @keyframes pulseMic {
+          0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+          70% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
         }
         
         @keyframes fadeIn {
