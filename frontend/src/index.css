@@ -1,0 +1,11 @@
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import '@astryxdesign/theme-stone/theme.css';
+
+/* Fallback for layout just in case */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-background-surface, #1e1e1e);
+  color: var(--color-text-primary, #ffffff);
+}
