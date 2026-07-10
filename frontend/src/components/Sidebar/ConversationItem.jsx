@@ -41,15 +41,15 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
   const timeStr = isToday ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : date.toLocaleDateString();
 
   return (
-    <div 
+    <div
       className={`conversation-item ${isActive ? 'active' : ''} ${chat.isPinned ? 'pinned' : ''}`}
       onClick={() => !isEditing && onSelect(chat.id)}
     >
       <MessageSquare size={18} className="chat-icon" />
-      
+
       <div className="chat-info">
         {isEditing ? (
-          <input 
+          <input
             ref={inputRef}
             className="chat-rename-input"
             value={editTitle}
@@ -66,14 +66,14 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
 
       {!isEditing && (
         <div className="chat-actions" onClick={e => e.stopPropagation()}>
-          <button 
-            className={`pin-btn ${chat.isPinned ? 'is-pinned' : ''}`} 
+          <button
+            className={`pin-btn ${chat.isPinned ? 'is-pinned' : ''}`}
             onClick={handleTogglePin}
             aria-label={chat.isPinned ? "Unpin chat" : "Pin chat"}
           >
             <Pin size={16} fill={chat.isPinned ? "currentColor" : "none"} />
           </button>
-          <ConversationMenu 
+          <ConversationMenu
             onRename={() => setIsEditing(true)}
             onDelete={() => onDelete(chat.id)}
           />
