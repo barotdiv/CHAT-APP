@@ -1,5 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { Theme } from '@astryxdesign/core/theme';
+import { stoneTheme } from '@astryxdesign/theme-stone/built';
 import { MessageSquare, Sun, Moon } from 'lucide-react';
 import ChatInterface from './pages/ChatInterface';
 import SignIn from './pages/SignIn';
@@ -25,8 +27,9 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      {/* Top Navigation Bar */}
+    <Theme theme={stoneTheme} media={theme}>
+      <div className="app-container">
+        {/* Top Navigation Bar */}
       {!hideNav && (
         <nav className="top-nav">
           <div className="nav-brand">
@@ -173,6 +176,7 @@ export default function App() {
           padding: 24px 0;
         }
       `}</style>
-    </div>
+      </div>
+    </Theme>
   );
 }

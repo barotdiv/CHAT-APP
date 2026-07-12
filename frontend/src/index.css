@@ -3,6 +3,7 @@
 @import '@astryxdesign/theme-stone/theme.css';
 
 :root, .theme-dark {
+  color-scheme: dark;
   --bg-app: #0F1117;
   --bg-card: #15171E;
   --bg-input: #1A1C23;
@@ -25,6 +26,7 @@
 }
 
 .theme-light {
+  color-scheme: light;
   --bg-app: #F9FAFB;
   --bg-card: #FFFFFF;
   --bg-input: #F3F4F6;

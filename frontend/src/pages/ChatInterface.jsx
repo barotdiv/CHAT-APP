@@ -192,7 +192,7 @@ export default function ChatInterface() {
           z-index: 1;
         }
 
-        .sidebar-search :global(.astryx-text-input-field) {
+        .sidebar-search .astryx-text-input-field {
           background-color: var(--bg-input) !important;
           border: 1px solid var(--border-highlight) !important;
           border-radius: 8px !important;
@@ -505,21 +505,21 @@ export default function ChatInterface() {
           padding: 24px 32px;
           background-color: transparent;
         }
-        .chat-input-area :global([data-astryx-theme="chat-send-button"]) {
+        .chat-input-area [data-astryx-theme="chat-send-button"] {
           background-color: #16A34A !important;
           color: #ffffff !important;
           border-radius: 50% !important;
           transition: transform 0.2s ease, background-color 0.2s !important;
         }
-        .chat-input-area :global([data-astryx-theme="chat-send-button"]:hover:not(:disabled)) {
+        .chat-input-area [data-astryx-theme="chat-send-button"]:hover:not(:disabled) {
           background-color: #15803d !important;
           transform: scale(1.05);
         }
-        .chat-input-area :global([data-astryx-theme="chat-send-button"]:disabled) {
+        .chat-input-area [data-astryx-theme="chat-send-button"]:disabled {
           opacity: 0.5 !important;
           cursor: not-allowed !important;
-          background-color: rgba(255, 255, 255, 0.1) !important;
-          color: rgba(255, 255, 255, 0.3) !important;
+          background-color: var(--border-highlight) !important;
+          color: var(--text-muted) !important;
         }
 
         .mic-listening {

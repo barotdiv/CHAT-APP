@@ -13,9 +13,17 @@ export const ThemeProvider = ({ children }) => {
     if (theme === 'light') {
       document.body.classList.add('theme-light');
       document.body.classList.remove('theme-dark');
+      document.documentElement.setAttribute('data-astryx-media', 'light');
+      document.body.setAttribute('data-astryx-media', 'light');
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.setAttribute('data-theme', 'light');
     } else {
       document.body.classList.add('theme-dark');
       document.body.classList.remove('theme-light');
+      document.documentElement.setAttribute('data-astryx-media', 'dark');
+      document.body.setAttribute('data-astryx-media', 'dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.setAttribute('data-theme', 'dark');
     }
   }, [theme]);
 
