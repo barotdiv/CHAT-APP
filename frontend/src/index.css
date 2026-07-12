@@ -25,28 +25,7 @@
   --btn-white-text: #0F1117;
 }
 
-.theme-light {
-  color-scheme: light;
-  --bg-app: #F9FAFB;
-  --bg-card: #FFFFFF;
-  --bg-input: #F3F4F6;
-  --bg-avatar: #E5E7EB;
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-highlight: rgba(0, 0, 0, 0.1);
-  --text-main: #111827;
-  --text-muted: rgba(0, 0, 0, 0.6);
-  --text-faded: rgba(0, 0, 0, 0.4);
-  --text-placeholder: rgba(0, 0, 0, 0.4);
-  --hover-overlay: rgba(0, 0, 0, 0.05);
-  --danger-hover: rgba(239, 68, 68, 0.1);
-  --nav-active-border: #111827;
-  --btn-primary-bg: #3B82F6;
-  --btn-primary-hover: #2563EB;
-  --btn-success-bg: #16A34A;
-  --btn-success-hover: #15803d;
-  --btn-white-bg: #111827;
-  --btn-white-text: #ffffff;
-}
+
 
 /* Fallback for layout just in case */
 body {

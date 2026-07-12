@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useThemeContext } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Trash2 } from 'lucide-react';
 import { Button } from '@astryxdesign/core/Button';
@@ -10,7 +9,6 @@ export default function Settings() {
   const navigate = useNavigate();
 
   // Mock settings state
-  const { theme, setTheme } = useThemeContext();
   const [fontSize, setFontSize] = useState('medium');
   const [timestamps, setTimestamps] = useState(true);
   const [enterToSend, setEnterToSend] = useState(true);
@@ -49,17 +47,7 @@ export default function Settings() {
           <section className="settings-section">
             <h2>General</h2>
             
-            <div className="setting-item">
-              <div className="setting-info">
-                <label>Theme</label>
-                <p>Choose your preferred appearance.</p>
-              </div>
-              <select value={theme} onChange={(e) => setTheme(e.target.value)} className="setting-select">
-                <option value="dark">Dark Theme</option>
-                <option value="light">Light Theme</option>
-                <option value="system">System Default</option>
-              </select>
-            </div>
+
 
             <div className="setting-item">
               <div className="setting-info">

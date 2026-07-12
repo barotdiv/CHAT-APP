@@ -11,12 +11,10 @@ import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfileDropdown from './components/ProfileDropdown';
 import { useAuth } from './context/AuthContext';
-import { useThemeContext } from './context/ThemeContext';
 
 export default function App() {
   const location = useLocation();
   const { user } = useAuth();
-  const { theme, toggleTheme } = useThemeContext();
   const isSignIn = location.pathname === '/signin';
   const isSignUp = location.pathname === '/signup';
   const hideNav = isSignIn || isSignUp;
@@ -27,7 +25,7 @@ export default function App() {
   };
 
   return (
-    <Theme theme={stoneTheme} media={theme}>
+    <Theme theme={stoneTheme} media="dark">
       <div className="app-container">
         {/* Top Navigation Bar */}
       {!hideNav && (
@@ -49,9 +47,6 @@ export default function App() {
           </div>
           
           <div className="nav-actions">
-            <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Toggle theme">
-              {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
             {user && <ProfileDropdown />}
           </div>
         </nav>
