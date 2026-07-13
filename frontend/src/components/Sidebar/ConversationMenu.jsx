@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MoreHorizontal, Edit2, Trash2 } from 'lucide-react';
 
 export default function ConversationMenu({ onRename, onDelete }) {
   const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const toggleMenu = (e) => {
     e.stopPropagation();
@@ -24,7 +41,7 @@ export default function ConversationMenu({ onRename, onDelete }) {
   };
 
   return (
-    <div className="conversation-menu-container">
+    <div className="conversation-menu-container" ref={menuRef}>
       <button className="menu-trigger" onClick={toggleMenu} aria-label="Chat options">
         <MoreHorizontal size={16} />
       </button>
