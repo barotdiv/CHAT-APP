@@ -7,7 +7,7 @@ export const protect = async (req, res, next) => {
     console.log("---MIDDLEWARE TRIGGERED ---");
     console.log("Authorization Header:", req.headers.authorization);
 
-    if (req.headers.autorization && req.headers.autorization.startsWith("Bearer")) {
+    if (req.headers.autorization && req.headers.autorization.trim().includes("Bearer")) {
         try {
             token = req.headers.authorization.split(' ')[1];
             consolelog("Token extracted successfully.");
