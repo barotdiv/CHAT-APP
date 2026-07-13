@@ -113,6 +113,19 @@ I'm your AI assistant. Ask me anything, and I'll help you find answers, solve pr
     }));
   }, []);
 
+  const deleteMessage = useCallback((chatId, messageId) => {
+    setChats(prev => prev.map(chat => {
+      if (chat.id === chatId) {
+        return {
+          ...chat,
+          updatedAt: Date.now(),
+          messages: chat.messages.filter(msg => msg.id !== messageId)
+        };
+      }
+      return chat;
+    }));
+  }, []);
+
   return {
     chats,
     activeChatId,
@@ -122,5 +135,6 @@ I'm your AI assistant. Ask me anything, and I'll help you find answers, solve pr
     renameChat,
     togglePinChat,
     addMessage,
+    deleteMessage,
   };
 }

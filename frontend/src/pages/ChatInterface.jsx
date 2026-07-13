@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
-import { Mic } from 'lucide-react';
+import { Mic, MoreVertical, Trash2 } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useConversations } from '../hooks/useConversations';
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -8,7 +8,7 @@ import Sidebar from '../components/Sidebar/Sidebar';
 export default function ChatInterface() {
   const { 
     chats, activeChatId, setActiveChatId, 
-    createNewChat, deleteChat, renameChat, togglePinChat, addMessage 
+    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage 
   } = useConversations();
 
   const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
@@ -18,8 +18,29 @@ export default function ChatInterface() {
   const [baseInput, setBaseInput] = useState('');
   const chatHistoryRef = useRef(null);
 
+  const [messageMenuOpen, setMessageMenuOpen] = useState(null);
+  const [messageToDelete, setMessageToDelete] = useState(null);
+  const [toastMessage, setToastMessage] = useState('');
+
   const { isListening, transcript, isSupported, error, toggleListening } = useSpeechRecognition();
   const prevListening = useRef(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.message-actions-container')) {
+        setMessageMenuOpen(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  };
 
   useEffect(() => {
     if (isListening && !prevListening.current) {
@@ -95,9 +116,39 @@ export default function ChatInterface() {
 
           {messages.map((msg) => (
             <div key={msg.id} className={`message-row ${msg.role}`}>
+              {msg.role === 'user' && (
+                <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
+                  <button className="msg-menu-btn" onClick={() => setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id)}>
+                    <MoreVertical size={16} />
+                  </button>
+                  {messageMenuOpen === msg.id && (
+                    <div className="msg-dropdown">
+                      <button className="msg-dropdown-item delete" onClick={() => { setMessageToDelete(msg.id); setMessageMenuOpen(null); }}>
+                        <Trash2 size={14} />
+                        Delete Message
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className={`message-bubble ${msg.role}`}>
                 {msg.content}
               </div>
+              {msg.role === 'ai' && (
+                <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
+                  <button className="msg-menu-btn" onClick={() => setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id)}>
+                    <MoreVertical size={16} />
+                  </button>
+                  {messageMenuOpen === msg.id && (
+                    <div className="msg-dropdown">
+                      <button className="msg-dropdown-item delete" onClick={() => { setMessageToDelete(msg.id); setMessageMenuOpen(null); }}>
+                        <Trash2 size={14} />
+                        Delete Message
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -125,6 +176,31 @@ export default function ChatInterface() {
           />
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {messageToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Message</h3>
+            <p>Are you sure you want to delete this message?</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setMessageToDelete(null)}>Cancel</button>
+              <button className="btn-danger" onClick={() => {
+                deleteMessage(activeChatId, messageToDelete);
+                setMessageToDelete(null);
+                showToast('Message deleted successfully');
+              }}>Delete Message</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toastMessage && (
+        <div className="toast-message">
+          {toastMessage}
+        </div>
+      )}
 
       <style>{`
         .layout-container {
@@ -476,6 +552,8 @@ export default function ChatInterface() {
           display: flex;
           width: 100%;
           animation: fadeIn 0.3s ease-out;
+          align-items: center;
+          gap: 8px;
         }
         .message-row.user {
           justify-content: flex-end;
@@ -538,6 +616,152 @@ export default function ChatInterface() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-actions-container {
+          position: relative;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .message-row:hover .message-actions-container,
+        .message-actions-container.active {
+          opacity: 1;
+        }
+        .msg-menu-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          padding: 6px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .msg-menu-btn:hover {
+          background: var(--hover-overlay);
+          color: var(--text-main);
+        }
+        .msg-dropdown {
+          position: absolute;
+          top: 100%;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 4px;
+          z-index: 50;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          min-width: 140px;
+        }
+        .message-row.user .msg-dropdown {
+          right: 0;
+        }
+        .message-row.ai .msg-dropdown {
+          left: 0;
+        }
+        .msg-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          color: var(--text-main);
+          font-size: 0.85rem;
+          cursor: pointer;
+          border-radius: 4px;
+          text-align: left;
+        }
+        .msg-dropdown-item:hover {
+          background: var(--hover-overlay);
+        }
+        .msg-dropdown-item.delete {
+          color: #ef4444;
+        }
+        .msg-dropdown-item.delete:hover {
+          background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+          animation: fadeIn 0.2s ease-out;
+        }
+        .modal-content {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 24px;
+          width: 90%;
+          max-width: 400px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .modal-content h3 {
+          margin: 0 0 12px 0;
+          color: var(--text-main);
+          font-size: 1.2rem;
+        }
+        .modal-content p {
+          margin: 0 0 24px 0;
+          color: var(--text-muted);
+          font-size: 0.95rem;
+          line-height: 1.5;
+        }
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+        }
+        .btn-cancel {
+          background: transparent;
+          border: 1px solid var(--border-color);
+          color: var(--text-main);
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+        }
+        .btn-cancel:hover {
+          background: var(--hover-overlay);
+        }
+        .btn-danger {
+          background: #ef4444;
+          border: none;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+        }
+        .btn-danger:hover {
+          background: #dc2626;
+        }
+
+        /* Toast */
+        .toast-message {
+          position: fixed;
+          bottom: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #10b981;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 500;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 100;
+          animation: slideUpFade 0.3s ease-out;
+        }
+        @keyframes slideUpFade {
+          from { opacity: 0; transform: translate(-50%, 20px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
         }
 
         /* Mobile/Tablet Responsiveness */
