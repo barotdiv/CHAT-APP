@@ -61,8 +61,6 @@ export const getMessages = async (req, res) => {
     }
 };
 
-// @desc    Add a message to a chat & Get AI Reply
-// @route   POST /api/chats/:id/messages
 export const addMessage = async (req, res) => {
     try {
         const { content } = req.body;
