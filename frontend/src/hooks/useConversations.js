@@ -128,6 +128,8 @@ export const useConversations = () => {
 
     // If the user hasn't created a chat yet, let's automatically create one for them!
     let targetChatId = chatId;
+    let isFirstMessage = false;
+    
     if (!targetChatId) {
       try {
         const res = await fetch('/api/chats', { method: 'POST', headers: getHeaders() });
@@ -137,11 +139,24 @@ export const useConversations = () => {
           setChats(prev => [formattedChat, ...prev]);
           setActiveChatId(formattedChat.id);
           targetChatId = formattedChat.id; // Use the new chat ID
+          isFirstMessage = true;
         }
       } catch (error) {
         console.error("Failed to auto-create chat", error);
         return;
       }
+    } else {
+      // Check if this is an existing empty chat named 'New Chat'
+      const chat = chats.find(c => c.id === targetChatId);
+      if (chat && (chat.title === 'New Chat' || chat.title === '') && chat.messages.length === 0) {
+        isFirstMessage = true;
+      }
+    }
+
+    if (isFirstMessage) {
+      const generatedTitle = content.length > 30 ? content.substring(0, 30) + '...' : content;
+      // Optimistically rename the chat right now
+      renameChat(targetChatId, generatedTitle);
     }
 
     // Optimistically update the UI
