@@ -6,69 +6,71 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // When the app loads, check if we have a token saved in localStorage
   useEffect(() => {
-    // Check local storage for user on mount
-    const storedUser = localStorage.getItem('chatAppUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const checkLoggedInUser = async () => {
+      const token = localStorage.getItem('chatAppToken');
+
+      if (token) {
+        try {
+          // If we have a token, ask the backend if it's still valid
+          const res = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (res.ok) {
+            const userData = await res.json();
+            setUser(userData);
+          } else {
+            localStorage.removeItem('chatAppToken');
+          }
+        } catch (error) {
+          console.error("Error verifying token:", error);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkLoggedInUser();
   }, []);
 
-  const login = (email) => {
-    const now = new Date().toISOString();
-    // Try to preserve existing user data if they are already in local storage to keep their createdAt date
-    const existingStr = localStorage.getItem('chatAppUser');
-    let existingUser = null;
-    if (existingStr) {
-      try {
-        existingUser = JSON.parse(existingStr);
-      } catch (e) {
-        // ignore
-      }
-    }
-    
-    const userData = {
-      email,
-      name: existingUser?.name || email.split('@')[0],
-      avatar: existingUser?.avatar || null,
-      id: existingUser?.id || Math.random().toString(36).substring(7),
-      createdAt: existingUser?.createdAt || now,
-      lastLogin: now,
-    };
-    setUser(userData);
-    localStorage.setItem('chatAppUser', JSON.stringify(userData));
-  };
-
-  const signup = (fullName, email) => {
-    const now = new Date().toISOString();
-    const userData = {
-      email,
-      name: fullName,
-      avatar: null,
-      id: Math.random().toString(36).substring(7),
-      createdAt: now,
-      lastLogin: now,
-    };
-    setUser(userData);
-    localStorage.setItem('chatAppUser', JSON.stringify(userData));
-  };
-
-  const updateProfile = (data) => {
-    setUser(prev => {
-      const updatedUser = { ...prev, ...data };
-      localStorage.setItem('chatAppUser', JSON.stringify(updatedUser));
-      return updatedUser;
+  const login = async (email, password) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
+
+    if (!res.ok) throw new Error('Login failed');
+
+    const data = await res.json();
+    localStorage.setItem('chatAppToken', data.token); // Save the VIP pass!
+    setUser({ _id: data._id, name: data.name, email: data.email });
+  };
+
+  const signup = async (name, email, password) => {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
+
+    if (!res.ok) throw new Error('Signup failed');
+
+    const data = await res.json();
+    localStorage.setItem('chatAppToken', data.token);
+    setUser({ _id: data._id, name: data.name, email: data.email });
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('chatAppUser');
+    localStorage.removeItem('chatAppToken');
   };
 
+  // We are skipping updateProfile for now to keep it simple!
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
