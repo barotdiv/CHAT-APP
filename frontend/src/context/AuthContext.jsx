@@ -41,7 +41,10 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({ email, password })
     });
 
-    if (!res.ok) throw new Error('Login failed');
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Login failed');
+    }
 
     const data = await res.json();
     localStorage.setItem('chatAppToken', data.token); // Save the VIP pass!
@@ -55,7 +58,10 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({ name, email, password })
     });
 
-    if (!res.ok) throw new Error('Signup failed');
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Signup failed');
+    }
 
     const data = await res.json();
     localStorage.setItem('chatAppToken', data.token);
