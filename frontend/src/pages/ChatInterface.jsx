@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
 import { Mic, MoreVertical, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useConversations } from '../hooks/useConversations';
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -131,8 +135,35 @@ export default function ChatInterface() {
                   )}
                 </div>
               )}
-              <div className={`message-bubble ${msg.role}`}>
-                {msg.content}
+              <div className={`message-bubble ${msg.role} ${msg.role === 'ai' ? 'markdown-body' : ''}`}>
+                {msg.role === 'ai' ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code({node, inline, className, children, ...props}) {
+                        const match = /language-(\w+)/.exec(className || '')
+                        return !inline && match ? (
+                          <SyntaxHighlighter
+                            style={vscDarkPlus}
+                            language={match[1]}
+                            PreTag="div"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        )
+                      }
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
               </div>
               {msg.role === 'ai' && (
                 <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
@@ -578,6 +609,99 @@ export default function ChatInterface() {
           border: 1px solid var(--border-color);
           border-radius: 20px;
           padding: 12px 20px;
+        }
+
+        /* Markdown Styling for AI responses */
+        .markdown-body {
+          font-family: inherit;
+        }
+        .markdown-body > *:first-child {
+          margin-top: 0;
+        }
+        .markdown-body > *:last-child {
+          margin-bottom: 0;
+        }
+        .markdown-body p {
+          margin-bottom: 12px;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, 
+        .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+          margin-top: 24px;
+          margin-bottom: 16px;
+          font-weight: 600;
+          line-height: 1.25;
+        }
+        .markdown-body h1 { font-size: 1.5em; }
+        .markdown-body h2 { font-size: 1.3em; }
+        .markdown-body h3 { font-size: 1.1em; }
+        
+        .markdown-body ul, .markdown-body ol {
+          margin-top: 0;
+          margin-bottom: 16px;
+          padding-left: 2em;
+        }
+        .markdown-body li + li {
+          margin-top: 4px;
+        }
+        
+        .markdown-body blockquote {
+          margin: 0 0 16px;
+          padding: 0 1em;
+          color: var(--text-muted);
+          border-left: 0.25em solid var(--border-highlight);
+        }
+        
+        .markdown-body code {
+          padding: 0.2em 0.4em;
+          margin: 0;
+          font-size: 85%;
+          background-color: var(--bg-input);
+          border-radius: 6px;
+          font-family: monospace;
+        }
+        
+        .markdown-body pre {
+          margin-bottom: 16px;
+          border-radius: 8px;
+          overflow: auto;
+        }
+        
+        .markdown-body pre > div {
+          border-radius: 8px !important;
+          margin: 0 !important;
+        }
+        
+        .markdown-body pre code {
+          padding: 0;
+          background-color: transparent;
+          border-radius: 0;
+        }
+        
+        .markdown-body table {
+          border-collapse: collapse;
+          width: 100%;
+          margin-bottom: 16px;
+        }
+        .markdown-body th, .markdown-body td {
+          border: 1px solid var(--border-color);
+          padding: 8px 12px;
+        }
+        .markdown-body th {
+          background-color: var(--hover-overlay);
+          font-weight: 600;
+        }
+        .markdown-body hr {
+          height: 1px;
+          background-color: var(--border-color);
+          border: none;
+          margin: 24px 0;
+        }
+        .markdown-body a {
+          color: #3b82f6;
+          text-decoration: none;
+        }
+        .markdown-body a:hover {
+          text-decoration: underline;
         }
         .chat-input-area {
           padding: 24px 32px;
