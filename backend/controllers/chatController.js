@@ -86,7 +86,7 @@ export const addMessage = async (req, res) => {
 
         // 4. Initialize Gemini (we use 1.5-flash because it is extremely fast)
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
         // 5. Start a chat session with the AI, giving it the history
         const chatSession = model.startChat({
