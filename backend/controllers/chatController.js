@@ -73,7 +73,7 @@ export const addMessage = async (req, res) => {
         const aiMessage = await Message.create({
             chatId: req.params.id,
             role: 'ai',
-            content: 'That sounds like a great idea! (This is from the backend Database)'
+            content: 'That sounds like a great idea!'
         });
         chat.updatedAt = Date.now();
         await chat.save();
