@@ -123,36 +123,49 @@ export const useConversations = () => {
     }
   };
 
-  // 7. Send a Message
   const addMessage = async (chatId, role, content) => {
-    // Our old UI code tries to simulate the AI using a timeout. 
-    // We only want to talk to the DB when the *user* sends something, so we ignore the fake AI call!
     if (role === 'ai') return;
 
-    // Optimistically update the UI instantly so the app feels super fast
+    // If the user hasn't created a chat yet, let's automatically create one for them!
+    let targetChatId = chatId;
+    if (!targetChatId) {
+      try {
+        const res = await fetch('/api/chats', { method: 'POST', headers: getHeaders() });
+        if (res.ok) {
+          const newChat = await res.json();
+          const formattedChat = { ...newChat, id: newChat._id, messages: [] };
+          setChats(prev => [formattedChat, ...prev]);
+          setActiveChatId(formattedChat.id);
+          targetChatId = formattedChat.id; // Use the new chat ID
+        }
+      } catch (error) {
+        console.error("Failed to auto-create chat", error);
+        return;
+      }
+    }
+
+    // Optimistically update the UI
     const tempId = Date.now().toString();
     const tempMessage = { id: tempId, role: 'user', content };
     setChats(prev => prev.map(c => {
-      if (c.id === chatId) return { ...c, messages: [...c.messages, tempMessage] };
+      if (c.id === targetChatId) return { ...c, messages: [...c.messages, tempMessage] };
       return c;
     }));
 
     try {
-      // Send the real request to the database
-      const res = await fetch(`/api/chats/${chatId}/messages`, {
+      // Send the real request to the database using targetChatId
+      const res = await fetch(`/api/chats/${targetChatId}/messages`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ content })
       });
 
       if (res.ok) {
-        // The backend returns BOTH the user message and the generated AI message
         const { userMessage, aiMessage } = await res.json();
 
-        // Replace the temporary message with the real messages from the database
         setChats(prev => prev.map(c => {
-          if (c.id === chatId) {
-            const filtered = c.messages.filter(m => m.id !== tempId); // Remove temp message
+          if (c.id === targetChatId) {
+            const filtered = c.messages.filter(m => m.id !== tempId);
             return {
               ...c,
               messages: [
@@ -164,6 +177,9 @@ export const useConversations = () => {
           }
           return c;
         }));
+      } else {
+        const errorData = await res.json();
+        console.error("Backend Error:", errorData.message);
       }
     } catch (error) {
       console.error(error);
