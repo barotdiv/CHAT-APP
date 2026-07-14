@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
 
@@ -60,25 +61,61 @@ export const getMessages = async (req, res) => {
     }
 };
 
+// @desc    Add a message to a chat & Get AI Reply
+// @route   POST /api/chats/:id/messages
 export const addMessage = async (req, res) => {
     try {
         const { content } = req.body;
+
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+        // 1. Fetch the PREVIOUS chat history so the AI remembers the conversation context!
+        const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
+
+        // 2. Format the history exactly how Google Gemini expects it
+        const formattedHistory = previousMessages.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model', // Gemini uses 'model' instead of 'ai'
+            parts: [{ text: msg.content }]
+        }));
+
+        // 3. Save the new User message to the database
         const userMessage = await Message.create({
             chatId: req.params.id,
             role: 'user',
             content
         });
+
+        // 4. Initialize Gemini (we use 1.5-flash because it is extremely fast)
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // 5. Start a chat session with the AI, giving it the history
+        const chatSession = model.startChat({
+            history: formattedHistory,
+        });
+
+        // 6. Send the user's newest message to the AI
+        const result = await chatSession.sendMessage(content);
+
+        // 7. Extract the text reply from the AI's response
+        const aiReplyText = result.response.text();
+
+        // 8. Save the AI's reply to the database
         const aiMessage = await Message.create({
             chatId: req.params.id,
             role: 'ai',
-            content: 'That sounds like a great idea!'
+            content: aiReplyText
         });
+
+        // Update the chat's 'updatedAt' timestamp
         chat.updatedAt = Date.now();
         await chat.save();
+
+        // Send both messages back to the React frontend
         res.status(201).json({ userMessage, aiMessage });
     } catch (error) {
+        console.error("AI Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
