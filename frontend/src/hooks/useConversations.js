@@ -166,13 +166,18 @@ export const useConversations = () => {
         setChats(prev => prev.map(c => {
           if (c.id === targetChatId) {
             const filtered = c.messages.filter(m => m.id !== tempId);
+            
+            const newMessages = [...filtered];
+            if (!newMessages.some(m => String(m.id) === String(userMessage._id))) {
+              newMessages.push({ ...userMessage, id: userMessage._id });
+            }
+            if (!newMessages.some(m => String(m.id) === String(aiMessage._id))) {
+              newMessages.push({ ...aiMessage, id: aiMessage._id });
+            }
+            
             return {
               ...c,
-              messages: [
-                ...filtered,
-                { ...userMessage, id: userMessage._id },
-                { ...aiMessage, id: aiMessage._id }
-              ]
+              messages: newMessages
             };
           }
           return c;
