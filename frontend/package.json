@@ -12,10 +12,14 @@
   "dependencies": {
     "@astryxdesign/core": "^0.1.4",
     "@astryxdesign/theme-stone": "^0.1.4",
+    "highlight.js": "^11.11.1",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.18.1",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
