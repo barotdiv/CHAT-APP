@@ -39,15 +39,19 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
     if (validate()) {
       setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        signup(fullName, email);
+      try {
+        await signup(fullName, email, password);
         navigate('/chat');
-      }, 1500);
+      } catch (err) {
+        console.error(err);
+        setErrors(prev => ({ ...prev, form: 'Sign up failed. Please try again.' }));
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -60,6 +64,7 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSignUp} className="signin-form" noValidate>
+          {errors.form && <div className="error-text" style={{ textAlign: 'center', marginBottom: '8px' }}>{errors.form}</div>}
           <div className="input-group">
             <TextInput
               label="Full Name"

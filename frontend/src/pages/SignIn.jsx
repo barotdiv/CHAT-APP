@@ -9,17 +9,23 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      login(email || 'user@example.com');
+    setError('');
+    try {
+      await login(email, password);
       navigate('/chat');
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+      setError('Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +37,7 @@ export default function SignIn() {
         </div>
 
         <form onSubmit={handleLogin} className="signin-form">
+          {error && <div className="error-text" style={{ textAlign: 'center', color: '#ef4444', fontSize: '0.9rem' }}>{error}</div>}
           <div className="input-group">
             <TextInput
               label="Email"
