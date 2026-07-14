@@ -28,58 +28,58 @@ export default function App() {
     <Theme theme={stoneTheme} media="dark">
       <div className="app-container">
         {/* Top Navigation Bar */}
-      {!hideNav && (
-        <nav className="top-nav">
-          <div className="nav-brand">
-            <span className="brand-text">AI Studio</span>
-          </div>
-          <div className="nav-links">
-            <Link to="/chat" className={getNavClass('/chat')}>
-              <MessageSquare size={18} />
-              <span>Chat Interface</span>
-            </Link>
-
-            {!user && (
-              <Link to="/signin" className={getNavClass('/signin')}>
-                <span>Sign In</span>
+        {!hideNav && (
+          <nav className="top-nav">
+            <div className="nav-brand">
+              <span className="brand-text">AI Studio</span>
+            </div>
+            <div className="nav-links">
+              <Link to="/chat" className={getNavClass('/chat')}>
+                <MessageSquare size={18} />
+                <span>Chat Interface</span>
               </Link>
-            )}
-          </div>
-          
-          <div className="nav-actions">
-            {user && <ProfileDropdown />}
-          </div>
-        </nav>
-      )}
 
-      {/* Main Content Area */}
-      <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Navigate to="/chat" replace />} />
-          <Route path="/chat" element={
-            <ProtectedRoute>
-              <ChatInterface />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } />
+              {!user && (
+                <Link to="/signin" className={getNavClass('/signin')}>
+                  <span>Sign In</span>
+                </Link>
+              )}
+            </div>
 
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-        </Routes>
-      </main>
+            <div className="nav-actions">
+              {user && <ProfileDropdown />}
+            </div>
+          </nav>
+        )}
 
-      <style>{`
+        {/* Main Content Area */}
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <ChatInterface />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+          </Routes>
+        </main>
+
+        <style>{`
         .app-container {
           display: flex;
           flex-direction: column;
