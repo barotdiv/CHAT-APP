@@ -200,9 +200,18 @@ export const useConversations = () => {
       } else {
         const errorData = await res.json();
         console.error("Backend Error:", errorData.message);
+        
+        // Remove the temporary user message on error
+        setChats(prev => prev.map(c => {
+          if (c.id === targetChatId) return { ...c, messages: c.messages.filter(m => m.id !== tempId) };
+          return c;
+        }));
+        
+        throw new Error(errorData.message || 'Failed to send message');
       }
     } catch (error) {
       console.error(error);
+      throw error;
     }
   };
 

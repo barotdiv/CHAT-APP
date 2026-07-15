@@ -80,15 +80,13 @@ export default function ChatInterface() {
 
     if (!textToSend.trim()) return;
     
-    // Add user message via hook
-    addMessage(activeChatId, 'user', textToSend);
+    // Add user message via hook and catch any API errors
+    addMessage(activeChatId, 'user', textToSend).catch(err => {
+      showToast(err.message || 'Failed to send message');
+    });
+    
     setInput('');
     setBaseInput('');
-    
-    // Simulate AI response
-    setTimeout(() => {
-      addMessage(activeChatId, 'ai', 'That sounds like a great idea. I can certainly help you implement the backend logic for that.');
-    }, 1000);
   };
 
   let composerStatus = undefined;
