@@ -118,15 +118,6 @@ export default function SignUp() {
 
         <div className="social-buttons">
           <Button
-            label="Sign up with Apple"
-            className="social-btn"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <img src="/assets/apple.svg" alt="Apple" style={{ width: '24px', height: '24px' }} />
-              <span>Sign up with Apple</span>
-            </div>
-          </Button>
-          <Button
             label="Sign up with Google"
             className="social-btn"
           >

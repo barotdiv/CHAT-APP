@@ -75,15 +75,6 @@ export default function SignIn() {
 
         <div className="social-buttons">
           <Button
-            label="Login with Apple"
-            className="social-btn"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <img src="/assets/apple.svg" alt="Apple" style={{ width: '24px', height: '24px' }} />
-              <span>Login with Apple</span>
-            </div>
-          </Button>
-          <Button
             label="Login with Google"
             className="social-btn"
           >
