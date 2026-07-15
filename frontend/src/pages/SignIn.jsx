@@ -67,23 +67,7 @@ export default function SignIn() {
           />
         </form>
 
-        <div className="divider">
-          <div className="divider-line"></div>
-          <span>Or continue with</span>
-          <div className="divider-line"></div>
-        </div>
 
-        <div className="social-buttons">
-          <Button
-            label="Login with Google"
-            className="social-btn"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <img src="/assets/google.svg" alt="Google" style={{ width: '24px', height: '24px' }} />
-              <span>Login with Google</span>
-            </div>
-          </Button>
-        </div>
 
         <div className="signin-footer">
           Don't have an account? <Link to="/signup" className="link">Sign up</Link>

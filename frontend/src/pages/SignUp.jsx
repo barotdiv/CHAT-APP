@@ -110,23 +110,7 @@ export default function SignUp() {
           />
         </form>
 
-        <div className="divider">
-          <div className="divider-line"></div>
-          <span>Or continue with</span>
-          <div className="divider-line"></div>
-        </div>
 
-        <div className="social-buttons">
-          <Button
-            label="Sign up with Google"
-            className="social-btn"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <img src="/assets/google.svg" alt="Google" style={{ width: '24px', height: '24px' }} />
-              <span>Sign up with Google</span>
-            </div>
-          </Button>
-        </div>
 
         <div className="signin-footer">
           Already have an account? <Link to="/signin" className="link">Sign in</Link>
