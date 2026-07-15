@@ -164,6 +164,9 @@ export default function ChatInterface() {
                 ) : (
                   msg.content
                 )}
+                <div className="message-time">
+                  {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </div>
               {msg.role === 'ai' && (
                 <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
@@ -597,6 +600,8 @@ export default function ChatInterface() {
           line-height: 1.6;
           max-width: 70%;
           word-break: break-word;
+          display: flex;
+          flex-direction: column;
         }
         .message-bubble.ai {
           background-color: transparent;
@@ -608,7 +613,17 @@ export default function ChatInterface() {
           color: var(--text-main);
           border: 1px solid var(--border-color);
           border-radius: 20px;
-          padding: 12px 20px;
+          padding: 10px 16px;
+        }
+        .message-time {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          margin-top: 4px;
+          align-self: flex-end;
+          line-height: 1;
+        }
+        .message-bubble.user .message-time {
+          color: var(--text-faded);
         }
 
         /* Markdown Styling for AI responses */

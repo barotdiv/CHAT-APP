@@ -161,7 +161,7 @@ export const useConversations = () => {
 
     // Optimistically update the UI
     const tempId = Date.now().toString();
-    const tempMessage = { id: tempId, role: 'user', content };
+    const tempMessage = { id: tempId, role: 'user', content, createdAt: new Date().toISOString() };
     setChats(prev => prev.map(c => {
       if (c.id === targetChatId) return { ...c, messages: [...c.messages, tempMessage] };
       return c;
