@@ -68,49 +68,80 @@ export const addMessage = async (req, res) => {
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-        // 1. Fetch the PREVIOUS chat history so the AI remembers the conversation context!
+        // 1. Fetch previous messages
         const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
 
-        // 2. Format the history exactly how Google Gemini expects it
-        const formattedHistory = previousMessages.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model', // Gemini uses 'model' instead of 'ai'
-            parts: [{ text: msg.content }]
-        }));
+        // 2. Format history for Gemini, including any previous images!
+        const formattedHistory = previousMessages.map(msg => {
+            const parts = [{ text: msg.content }];
 
-        // 3. Save the new User message to the database
+            // If a past message had an image, attach it so the AI remembers it
+            if (msg.image) {
+                // Our database saves it as a Data URL (e.g. "data:image/png;base64,iVBORw0K...")
+                // Gemini needs us to split that up:
+                const [meta, base64Data] = msg.image.split(',');
+                const mimeType = meta.split(':')[1].split(';')[0];
+
+                parts.push({
+                    inlineData: { data: base64Data, mimeType: mimeType }
+                });
+            }
+
+            return {
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: parts
+            };
+        });
+
+        // 3. Process the NEW uploaded image (if the user attached one)
+        let imageBase64DataUrl = null;
+        let currentMessageParts = [{ text: content }]; // What we will send to Gemini
+
+        if (req.file) {
+            // Convert the uploaded memory buffer into a Base64 string
+            const base64String = req.file.buffer.toString('base64');
+
+            // Format it as a Data URL so we can easily display it in React later
+            imageBase64DataUrl = `data:${req.file.mimetype};base64,${base64String}`;
+
+            // Add the image part for Gemini to analyze
+            currentMessageParts.push({
+                inlineData: {
+                    data: base64String,
+                    mimeType: req.file.mimetype
+                }
+            });
+        }
+
+        // 4. Save the new User message to the database (including the image Data URL)
         const userMessage = await Message.create({
             chatId: req.params.id,
             role: 'user',
-            content
+            content,
+            image: imageBase64DataUrl // This will be null if no image was uploaded
         });
 
-        // 4. Initialize Gemini (we use 1.5-flash because it is extremely fast)
+        // 5. Initialize Gemini
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-        // 5. Start a chat session with the AI, giving it the history
-        const chatSession = model.startChat({
-            history: formattedHistory,
-        });
+        // 6. Start the chat session
+        const chatSession = model.startChat({ history: formattedHistory });
 
-        // 6. Send the user's newest message to the AI
-        const result = await chatSession.sendMessage(content);
-
-        // 7. Extract the text reply from the AI's response
+        // 7. Send the new message (text + optional image) to the AI
+        const result = await chatSession.sendMessage(currentMessageParts);
         const aiReplyText = result.response.text();
 
-        // 8. Save the AI's reply to the database
+        // 8. Save AI reply
         const aiMessage = await Message.create({
             chatId: req.params.id,
             role: 'ai',
             content: aiReplyText
         });
 
-        // Update the chat's 'updatedAt' timestamp
         chat.updatedAt = Date.now();
         await chat.save();
 
-        // Send both messages back to the React frontend
         res.status(201).json({ userMessage, aiMessage });
     } catch (error) {
         console.error("AI Error:", error);
