@@ -123,13 +123,10 @@ export const useConversations = () => {
     }
   };
 
-  const addMessage = async (chatId, role, content) => {
+  const addMessage = async (chatId, role, content, imageFile = null) => {
     if (role === 'ai') return;
 
-    // If the user hasn't created a chat yet, let's automatically create one for them!
     let targetChatId = chatId;
-    let isFirstMessage = false;
-    
     if (!targetChatId) {
       try {
         const res = await fetch('/api/chats', { method: 'POST', headers: getHeaders() });
@@ -138,41 +135,53 @@ export const useConversations = () => {
           const formattedChat = { ...newChat, id: newChat._id, messages: [] };
           setChats(prev => [formattedChat, ...prev]);
           setActiveChatId(formattedChat.id);
-          targetChatId = formattedChat.id; // Use the new chat ID
-          isFirstMessage = true;
+          targetChatId = formattedChat.id;
         }
       } catch (error) {
         console.error("Failed to auto-create chat", error);
         return;
       }
-    } else {
-      // Check if this is an existing empty chat named 'New Chat'
-      const chat = chats.find(c => c.id === targetChatId);
-      if (chat && (chat.title === 'New Chat' || chat.title === '') && chat.messages.length === 0) {
-        isFirstMessage = true;
-      }
     }
 
-    if (isFirstMessage) {
-      const generatedTitle = content.length > 30 ? content.substring(0, 30) + '...' : content;
-      // Optimistically rename the chat right now
-      renameChat(targetChatId, generatedTitle);
-    }
-
-    // Optimistically update the UI
+    // Optimistically update the UI so it feels fast
     const tempId = Date.now().toString();
-    const tempMessage = { id: tempId, role: 'user', content, createdAt: new Date().toISOString() };
+
+    // If we have an image, we can optionally create a local preview URL for the UI!
+    let localImageUrl = null;
+    if (imageFile) {
+      localImageUrl = URL.createObjectURL(imageFile);
+    }
+
+    const tempMessage = { id: tempId, role: 'user', content, image: localImageUrl };
+
     setChats(prev => prev.map(c => {
       if (c.id === targetChatId) return { ...c, messages: [...c.messages, tempMessage] };
       return c;
     }));
 
     try {
-      // Send the real request to the database using targetChatId
+      let bodyData;
+      // We start with JUST our Authorization token
+      let fetchHeaders = { 'Authorization': `Bearer ${localStorage.getItem('chatAppToken')}` };
+
+      // Did the user attach an image?
+      if (imageFile) {
+        // Yes! Create a FormData envelope
+        bodyData = new FormData();
+        bodyData.append('content', content);
+        bodyData.append('image', imageFile); // 'image' MUST match the name in upload.single('image')
+        // CRITICAL: We DO NOT set the Content-Type header here. The browser does it for us automatically!
+      } else {
+        // No image! Just send normal JSON text
+        bodyData = JSON.stringify({ content });
+        fetchHeaders['Content-Type'] = 'application/json';
+      }
+
+      // Send the request using our dynamic headers and body
       const res = await fetch(`/api/chats/${targetChatId}/messages`, {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ content })
+        headers: fetchHeaders,
+        body: bodyData
       });
 
       if (res.ok) {
@@ -181,18 +190,13 @@ export const useConversations = () => {
         setChats(prev => prev.map(c => {
           if (c.id === targetChatId) {
             const filtered = c.messages.filter(m => m.id !== tempId);
-            
-            const newMessages = [...filtered];
-            if (!newMessages.some(m => String(m.id) === String(userMessage._id))) {
-              newMessages.push({ ...userMessage, id: userMessage._id });
-            }
-            if (!newMessages.some(m => String(m.id) === String(aiMessage._id))) {
-              newMessages.push({ ...aiMessage, id: aiMessage._id });
-            }
-            
             return {
               ...c,
-              messages: newMessages
+              messages: [
+                ...filtered,
+                { ...userMessage, id: userMessage._id },
+                { ...aiMessage, id: aiMessage._id }
+              ]
             };
           }
           return c;
@@ -200,18 +204,9 @@ export const useConversations = () => {
       } else {
         const errorData = await res.json();
         console.error("Backend Error:", errorData.message);
-        
-        // Remove the temporary user message on error
-        setChats(prev => prev.map(c => {
-          if (c.id === targetChatId) return { ...c, messages: c.messages.filter(m => m.id !== tempId) };
-          return c;
-        }));
-        
-        throw new Error(errorData.message || 'Failed to send message');
       }
     } catch (error) {
       console.error(error);
-      throw error;
     }
   };
 
