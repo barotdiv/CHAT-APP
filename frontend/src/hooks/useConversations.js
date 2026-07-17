@@ -189,7 +189,11 @@ export const useConversations = () => {
 
         setChats(prev => prev.map(c => {
           if (c.id === targetChatId) {
-            const filtered = c.messages.filter(m => m.id !== tempId);
+            const filtered = c.messages.filter(m => 
+              m.id !== tempId && 
+              m.id !== userMessage._id && 
+              m.id !== aiMessage._id
+            );
             return {
               ...c,
               title: chatTitle || c.title,
