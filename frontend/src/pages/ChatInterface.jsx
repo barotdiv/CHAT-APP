@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
-import { Mic, MoreVertical, Trash2 } from 'lucide-react';
+import { Mic, MoreVertical, Trash2, ImagePlus, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -10,9 +10,9 @@ import { useConversations } from '../hooks/useConversations';
 import Sidebar from '../components/Sidebar/Sidebar';
 
 export default function ChatInterface() {
-  const { 
-    chats, activeChatId, setActiveChatId, 
-    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage 
+  const {
+    chats, activeChatId, setActiveChatId,
+    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage
   } = useConversations();
 
   const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
@@ -20,7 +20,9 @@ export default function ChatInterface() {
 
   const [input, setInput] = useState('');
   const [baseInput, setBaseInput] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
   const chatHistoryRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [messageMenuOpen, setMessageMenuOpen] = useState(null);
   const [messageToDelete, setMessageToDelete] = useState(null);
@@ -79,12 +81,12 @@ export default function ChatInterface() {
     }
 
     if (!textToSend.trim()) return;
-    
+
     // Add user message via hook and catch any API errors
     addMessage(activeChatId, 'user', textToSend).catch(err => {
       showToast(err.message || 'Failed to send message');
     });
-    
+
     setInput('');
     setBaseInput('');
   };
@@ -98,7 +100,7 @@ export default function ChatInterface() {
 
   return (
     <div className="layout-container">
-      <Sidebar 
+      <Sidebar
         chats={chats}
         activeChatId={activeChatId}
         onNewChat={createNewChat}
@@ -107,7 +109,7 @@ export default function ChatInterface() {
         onDeleteChat={deleteChat}
         onTogglePin={togglePinChat}
       />
-      
+
       <div className="chat-container">
         <div className="chat-history" ref={chatHistoryRef}>
           <div className="date-divider">
@@ -138,7 +140,7 @@ export default function ChatInterface() {
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code({node, inline, className, children, ...props}) {
+                      code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '')
                         return !inline && match ? (
                           <SyntaxHighlighter
