@@ -80,15 +80,16 @@ export default function ChatInterface() {
       textToSend = textOrEvent;
     }
 
-    if (!textToSend.trim()) return;
+    if (!textToSend.trim() && !selectedImage) return;
 
     // Add user message via hook and catch any API errors
-    addMessage(activeChatId, 'user', textToSend).catch(err => {
+    addMessage(activeChatId, 'user', textToSend, selectedImage).catch(err => {
       showToast(err.message || 'Failed to send message');
     });
 
     setInput('');
     setBaseInput('');
+    setSelectedImage(null);
   };
 
   let composerStatus = undefined;
