@@ -139,10 +139,15 @@ export const addMessage = async (req, res) => {
             content: aiReplyText
         });
 
+        // Update chat title if it's still 'New Chat'
+        if (chat.title === 'New Chat') {
+            chat.title = content ? (content.length > 30 ? content.substring(0, 30) + '...' : content) : 'Image Upload';
+        }
+
         chat.updatedAt = Date.now();
         await chat.save();
 
-        res.status(201).json({ userMessage, aiMessage });
+        res.status(201).json({ userMessage, aiMessage, chatTitle: chat.title });
     } catch (error) {
         console.error("AI Error:", error);
         res.status(500).json({ message: error.message });

@@ -185,13 +185,14 @@ export const useConversations = () => {
       });
 
       if (res.ok) {
-        const { userMessage, aiMessage } = await res.json();
+        const { userMessage, aiMessage, chatTitle } = await res.json();
 
         setChats(prev => prev.map(c => {
           if (c.id === targetChatId) {
             const filtered = c.messages.filter(m => m.id !== tempId);
             return {
               ...c,
+              title: chatTitle || c.title,
               messages: [
                 ...filtered,
                 { ...userMessage, id: userMessage._id },
