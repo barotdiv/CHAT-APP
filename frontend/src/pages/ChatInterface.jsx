@@ -137,6 +137,14 @@ export default function ChatInterface() {
                 </div>
               )}
               <div className={`message-bubble ${msg.role} ${msg.role === 'ai' ? 'markdown-body' : ''}`}>
+                {/* NEW: If the message has an image, display it! */}
+                {msg.image && (
+                  <img
+                    src={msg.image}
+                    alt="Uploaded attachment"
+                    className="message-image"
+                  />
+                )}
                 {msg.role === 'ai' ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
@@ -189,6 +197,33 @@ export default function ChatInterface() {
         </div>
 
         <div className="chat-input-area">
+
+          {/* NEW: Image Preview Box */}
+          {selectedImage && (
+            <div className="image-preview-container">
+              <div className="image-preview">
+                <img src={URL.createObjectURL(selectedImage)} alt="Preview" />
+                <button
+                  className="remove-image-btn"
+                  onClick={() => setSelectedImage(null)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+          {/* NEW: Hidden File Input */}
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setSelectedImage(e.target.files[0]);
+              }
+            }}
+          />
           <ChatComposer
             value={input}
             onChange={setInput}
@@ -196,16 +231,28 @@ export default function ChatInterface() {
             placeholder="Type a message..."
             status={composerStatus}
             sendActions={
-              <Button
-                variant="ghost"
-                size="md"
-                icon={<Mic size={18} strokeWidth={2.5} />}
-                isIconOnly
-                aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
-                onClick={toggleListening}
-                className={isListening ? 'mic-listening' : ''}
-                style={{ marginRight: '8px' }}
-              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {/* NEW: The Upload Button */}
+                <Button
+                  variant="ghost"
+                  size="md"
+                  icon={<ImagePlus size={18} strokeWidth={2.5} />}
+                  isIconOnly
+                  aria-label="Upload Image"
+                  onClick={() => fileInputRef.current?.click()}
+                />
+
+                {/* Your existing Mic Button */}
+                <Button
+                  variant="ghost"
+                  size="md"
+                  icon={<Mic size={18} strokeWidth={2.5} />}
+                  isIconOnly
+                  aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+                  onClick={toggleListening}
+                  className={isListening ? 'mic-listening' : ''}
+                />
+              </div>
             }
             sendButton={<ChatSendButton />}
           />
@@ -625,6 +672,46 @@ export default function ChatInterface() {
         }
         .message-bubble.user .message-time {
           color: var(--text-faded);
+        }
+
+        .message-image {
+          max-width: 100%;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          display: block;
+        }
+
+        .image-preview-container {
+          padding: 0 16px 12px 16px;
+          display: flex;
+        }
+
+        .image-preview {
+          position: relative;
+          display: inline-block;
+        }
+
+        .image-preview img {
+          height: 60px;
+          border-radius: 8px;
+          border: 2px solid var(--border-highlight);
+        }
+
+        .remove-image-btn {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         /* Markdown Styling for AI responses */
