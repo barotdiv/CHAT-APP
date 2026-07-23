@@ -121,12 +121,6 @@ export default function ChatInterface() {
 
           {messages.map((msg) => (
             <div key={msg.id} className={`message-row ${msg.role}`}>
-              <div className={`message-bubble ${msg.role}`}>
-                {msg.image && (
-                  <img src={msg.image} alt='Uploaded attachment' className='message-image' />
-                )}
-                {msg.content}
-              </div>
               {msg.role === 'user' && (
                 <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
                   <button className="msg-menu-btn" onClick={() => setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id)}>
