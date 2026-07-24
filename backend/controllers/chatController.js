@@ -50,12 +50,51 @@ export const deleteChat = async (req, res) => {
     }
 };
 
+export const duplicateChat = async (req, res) => {
+    try {
+        const originalChat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+        if (!originalChat) return res.status(404).json({ message: 'Chat not found' });
+
+        const newChat = await Chat.create({
+            userId: req.user._id,
+            title: `${originalChat.title} (Copy)`,
+            isPinned: false
+        });
+        const originalMessages = await Messages.find({ chatId: req.params.id }).sort({ createdAt: 1 });
+        if (originalMessages.length > 0) {
+            const newMessages = originalMessages.map(msg => ({
+                chatId: newChat._id,
+                role: msg.role,
+                content: msg.content,
+                image: msg.image
+            }));
+            await Message.insertMany(newMessages);
+        }
+        res.status(201).json(newChat);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export const getMessages = async (req, res) => {
     try {
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
         const messages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
         res.json(messages);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const deleteMessages = async (req, res) => {
+    try {
+        const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+        if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+        const message = await Message.findOneAndDelete({ _id: req.params.messageId, chatId: req.params.id });
+        if (!message) return res.status(404).json({ message: 'Message not found' });
+        res.json({ message: 'Message deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -71,14 +110,12 @@ export const addMessage = async (req, res) => {
         // 1. Fetch previous messages
         const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
 
-        // 2. Format history for Gemini, including any previous images!
+        // 2. Format history for Gemini
         const formattedHistory = previousMessages.map(msg => {
-            const parts = [{ text: msg.content }];
+            const parts = [{ text: msg.content || '' }];
 
             // If a past message had an image, attach it so the AI remembers it
             if (msg.image) {
-                // Our database saves it as a Data URL (e.g. "data:image/png;base64,iVBORw0K...")
-                // Gemini needs us to split that up:
                 const [meta, base64Data] = msg.image.split(',');
                 const mimeType = meta.split(':')[1].split(';')[0];
 
@@ -95,7 +132,7 @@ export const addMessage = async (req, res) => {
 
         // 3. Process the NEW uploaded image (if the user attached one)
         let imageBase64DataUrl = null;
-        let currentMessageParts = [{ text: content }]; // What we will send to Gemini
+        let currentMessageParts = [{ text: content || '' }]; // What we will send to Gemini
 
         if (req.file) {
             // Convert the uploaded memory buffer into a Base64 string
