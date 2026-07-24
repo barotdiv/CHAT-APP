@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MoreHorizontal, Edit2, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit2, Copy, Download, Trash2 } from 'lucide-react';
 
-export default function ConversationMenu({ onRename, onDelete }) {
+export default function ConversationMenu({ onRename, onDelete, onDuplicate, onExport }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -15,7 +15,7 @@ export default function ConversationMenu({ onRename, onDelete }) {
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -26,17 +26,27 @@ export default function ConversationMenu({ onRename, onDelete }) {
     setIsOpen(!isOpen);
   };
 
-  const handleDelete = (e) => {
-    e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this chat?')) {
-      onDelete();
-    }
-    setIsOpen(false);
-  };
-
   const handleRename = (e) => {
     e.stopPropagation();
     onRename();
+    setIsOpen(false);
+  };
+
+  const handleDuplicate = (e) => {
+    e.stopPropagation();
+    if (onDuplicate) onDuplicate();
+    setIsOpen(false);
+  }
+
+  const handleExport = (e) => {
+    e.stopPropagation();
+    if (onExport) onExport();
+    setIsOpen(false);
+  }
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete();
     setIsOpen(false);
   };
 
@@ -50,6 +60,12 @@ export default function ConversationMenu({ onRename, onDelete }) {
         <div className="menu-dropdown">
           <button className="menu-item" onClick={handleRename}>
             <Edit2 size={14} /> Rename
+          </button>
+          <button className="menu-item" onClick={handleDuplicate}>
+            <Copy size={14} /> Duplicate
+          </button>
+          <button className="menu-item" onClick={handleExport}>
+            <Download size={14} /> Export
           </button>
           <button className="menu-item delete" onClick={handleDelete}>
             <Trash2 size={14} /> Delete
