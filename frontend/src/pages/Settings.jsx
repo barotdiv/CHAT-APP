@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from "../context/SettingsContext";
+import { useConversations } from "../hooks/useConversations";
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Trash2 } from 'lucide-react';
 import { Button } from '@astryxdesign/core/Button';
 
 export default function Settings() {
   const { logout } = useAuth();
+  const { settings, updateSetting } = useSettings();
+  const { chats, deleteChat } = useConversations();
   const navigate = useNavigate();
 
   // Mock settings state
@@ -21,12 +25,41 @@ export default function Settings() {
     navigate('/signin');
   };
 
-  const handleClearHistory = () => {
-    alert("Chat history cleared. (Mock action)");
+  const handleClearHistory = async () => {
+    if (window.confirm("Are you sure you want to clear all chat history? This cannot be undone.")) {
+      try {
+        for (const chat of chats) {
+          await deleteChat(chat.id);
+        }
+        alert("All chat history cleared successfully!");
+      } catch (err) {
+        console.error("Error clearing history:", err);
+      }
+    }
   };
 
   const handleExportHistory = () => {
-    alert("Exporting chat history... (Mock action)");
+    if (!chats.length) return alert("No chat history available to export.");
+
+    let fullExport = `# NovaAI Complete Chat History Export\nExported: ${new Date().toLocaleString()}\n\n${'='.repeat(40)}\n\n`;
+    chats.forEach(chat => {
+      fullExport += `## Chat Title: ${chat.title}\nUpdated: ${new Date(chat.updatedAt).toLocaleString()}\n\n`;
+      if (chat.messages && chat.messages.length) {
+        chat.messages.forEach(m => {
+          fullExport += `[${m.role === 'user' ? 'User' : 'NovaAI'}]: ${m.content}\n\n`;
+        });
+      } else {
+        fullExport += `(No loaded messages)\n\n`;
+      }
+      fullExport += `${'-'.repeat(30)}\n\n`;
+    });
+    const blob = new Blob([fullExport], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `novaai_all_chats_export_${Date.now().md}`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleDeleteAccount = () => {
@@ -36,19 +69,26 @@ export default function Settings() {
     }
   };
 
+  const handleToggleNotification = async () => {
+    const newValue = !settings.notifications;
+    if (newValue && 'Notification' in window && Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert("Notification permission were denied in your browser settings.");
+        return;
+      }
+    }
+    updateSetting("notifications", newValue);
+  };
+
   return (
     <div className="settings-page">
       <div className="settings-container">
         <h1>Settings</h1>
 
         <div className="settings-content">
-
-          {/* General Section */}
           <section className="settings-section">
             <h2>General</h2>
-
-
-
             <div className="setting-item">
               <div className="setting-info">
                 <label>Language</label>
@@ -62,15 +102,13 @@ export default function Settings() {
                 <label>Font Size</label>
                 <p>Adjust chat text size.</p>
               </div>
-              <select value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="setting-select">
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
+              <select value={settings.fontSize} onChange={(e) => updateSetting('fontSize', e.target.value)} className="setting-select">
+                <option value="small">Small (14px)</option>
+                <option value="medium">Medium (15px - Default)</option>
+                <option value="large">Large (18px)</option>
               </select>
             </div>
           </section>
-
-          {/* Chat Settings Section */}
           <section className="settings-section">
             <h2>Chat Settings</h2>
 
@@ -80,7 +118,7 @@ export default function Settings() {
                 <p>Display time next to messages.</p>
               </div>
               <label className="toggle">
-                <input type="checkbox" checked={timestamps} onChange={() => setTimestamps(!timestamps)} />
+                <input type="checkbox" checked={settings.timestamps} onChange={() => updateSetting('timestamps', !settings.timestamps)} />
                 <span className="slider"></span>
               </label>
             </div>
@@ -91,7 +129,7 @@ export default function Settings() {
                 <p>Press Enter to send message, Shift+Enter for new line.</p>
               </div>
               <label className="toggle">
-                <input type="checkbox" checked={enterToSend} onChange={() => setEnterToSend(!enterToSend)} />
+                <input type="checkbox" checked={settings.enterToSend} onChange={() => updateSetting('enterToSend', !settings.enterToSend)} />
                 <span className="slider"></span>
               </label>
             </div>
@@ -102,7 +140,37 @@ export default function Settings() {
                 <p>Enable microphone for voice typing.</p>
               </div>
               <label className="toggle">
-                <input type="checkbox" checked={voiceInput} onChange={() => setVoiceInput(!voiceInput)} />
+                <input type="checkbox" checked={settings.voiceInput} onChange={() => updateSetting('voiceInput', !settings.voiceInput)} />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            <div className="setting-item">
+              <div className="setting-info">
+                <label>Auto Scroll</label>
+                <p>Automatically scroll down as new AI responses arrive.</p>
+              </div>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.autoScroll}
+                  onChange={() => updateSetting('autoScroll', !settings.autoScroll)}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            <div className="setting-item">
+              <div className="setting-info">
+                <label>Typing Animation</label>
+                <p>Enable smooth fade/typewriter animation for AI messages.</p>
+              </div>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.typingAnimation}
+                  onChange={() => updateSetting('typingAnimation', !settings.typingAnimation)}
+                />
                 <span className="slider"></span>
               </label>
             </div>
@@ -115,26 +183,26 @@ export default function Settings() {
 
           {/* Notifications Section */}
           <section className="settings-section">
-            <h2>Notifications</h2>
+            <h2>Notifications & Sound</h2>
 
             <div className="setting-item">
               <div className="setting-info">
                 <label>Enable Notifications</label>
-                <p>Receive push notifications for new messages.</p>
+                <p>Receive browser desktop notifications when AI finishes generating.</p>
               </div>
               <label className="toggle">
-                <input type="checkbox" checked={notifications} onChange={() => setNotifications(!notifications)} />
+                <input type="checkbox" checked={settings.notifications} onChange={(handleToggleNotification)} />
                 <span className="slider"></span>
               </label>
             </div>
 
             <div className="setting-item">
               <div className="setting-info">
-                <label>Notification Sounds</label>
-                <p>Play a sound for incoming messages.</p>
+                <label>Sound Effects</label>
+                <p>Play a subtle sound effect when an AI messages arrives.</p>
               </div>
               <label className="toggle">
-                <input type="checkbox" checked={sound} onChange={() => setSound(!sound)} />
+                <input type="checkbox" checked={settings.sound} onChange={() => updateSetting('sound', !settings.sound)} />
                 <span className="slider"></span>
               </label>
             </div>
@@ -179,7 +247,6 @@ export default function Settings() {
               <a href="#">Privacy Policy</a>
             </div>
           </section>
-
         </div>
       </div>
 
