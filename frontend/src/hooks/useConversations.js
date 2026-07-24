@@ -123,6 +123,104 @@ export const useConversations = () => {
     }
   };
 
+  const duplicateChat = async (id) => {
+    try {
+      const res = await fetch(`/api/chats/${id}/duplicate`, { method: 'POST', headers: getHeaders() });
+      if (res.ok) {
+        const newChat = await res.json();
+        const formattedChat = { ...newChat, id: newChat._id, messages: [] };
+        setChats(prev => [formattedChat, ...prev]);
+        setActiveChatId(formattedChat.id);
+      }
+    } catch (error) {
+      console.error("Error duplicating chat:", error);
+    }
+  };
+
+  const deleteMessage = async (chatId, messageId) => {
+    try {
+      const res = await fetch(`api/chats/${chatId}/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      if (res.ok) {
+        setChats(prev => prev.map(c => {
+          if (c.id === chatId) {
+            return {
+              ...c,
+              messages: c.messages.filter(m => m.id !== messageId)
+            };
+          }
+          return c;
+        }));
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
+  const exportChat = (chatId, format = 'txt') => {
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat || !chat.messages.length) return alert("No messages to export.");
+
+    const title = chat.title || "Chat Export";
+    let content = "";
+
+    if (format === 'md') {
+      content = `# ${title}\n\nExported from NovaAI\n\n---\n\n`;
+      chat.messages.forEach(msg => {
+        const sender = msg.role === 'user' ? '**User**' : '**NovaAI**';
+        const time = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '';
+        content += `### ${sender} (${time})\n${msg.content}\n\n`;
+      });
+    } else if (format === 'txt' || format === 'pdf') {
+      content = `${title.toUpperCase()}\nExported from NovaAI\n${'='.repeat(40)}\n\n`;
+      chat.messages.forEach(msg => {
+        const sender = msg.role === 'user' ? 'User' : 'NovaAI';
+        const time = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '';
+        content += `[${time}] ${sender}:\n${msg.content}\n\n${'-'.repeat(30)}\n\n`;
+      });
+    }
+    if (format === 'pdf') {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${title} - NovaAI Export</title>
+            <style>
+              body { font-family: system-ui, sans-serif; padding: 30px, line-through: 1.6; color: #111; }
+              h1 { border-bottom: 2px solid #ccc; padding-bottom: 8px; }
+              .msg { margin-bottom: 20px; padding: 12px; border-radius: 8px; background: #f4f4f5; }
+              .msg.user { background: #e0f2fe; }
+              .meta { font-size: 0.8em; color: #666; font-weight: bold; margin-bottom: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>${title}</h1>
+            ${chat.message.map(m => `
+              <div class="msg ${m.role}">
+                <div class="meta">${m.role === 'user' ? 'User' : 'NovaAI'} (${new Date(m.createdAt || Date.now()).toLocaleString()})</div>
+                <div>${m.content}</div>
+              </div>
+            `).join('')}
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      return;
+    }
+    const mimeType = format === 'md' ? 'text/markdown' : 'text/plain';
+    const extension = format === 'md' ? '.md' : '.txt';
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export${extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const addMessage = async (chatId, role, content, imageFile = null) => {
     if (role === 'ai') return;
 
@@ -152,7 +250,7 @@ export const useConversations = () => {
       localImageUrl = URL.createObjectURL(imageFile);
     }
 
-    const tempMessage = { id: tempId, role: 'user', content, image: localImageUrl };
+    const tempMessage = { id: tempId, role: 'user', content, image: localImageUrl, createdAt: new Date().toISOString() };
 
     setChats(prev => prev.map(c => {
       if (c.id === targetChatId) return { ...c, messages: [...c.messages, tempMessage] };
@@ -172,7 +270,6 @@ export const useConversations = () => {
         bodyData.append('image', imageFile); // 'image' MUST match the name in upload.single('image')
         // CRITICAL: We DO NOT set the Content-Type header here. The browser does it for us automatically!
       } else {
-        // No image! Just send normal JSON text
         bodyData = JSON.stringify({ content });
         fetchHeaders['Content-Type'] = 'application/json';
       }
@@ -189,9 +286,9 @@ export const useConversations = () => {
 
         setChats(prev => prev.map(c => {
           if (c.id === targetChatId) {
-            const filtered = c.messages.filter(m => 
-              m.id !== tempId && 
-              m.id !== userMessage._id && 
+            const filtered = c.messages.filter(m =>
+              m.id !== tempId &&
+              m.id !== userMessage._id &&
               m.id !== aiMessage._id
             );
             return {
@@ -223,6 +320,9 @@ export const useConversations = () => {
     deleteChat,
     renameChat,
     togglePinChat,
+    duplicateChat,
+    deleteMessage,
+    exportChat,
     addMessage,
   };
 };
