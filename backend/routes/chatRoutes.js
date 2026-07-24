@@ -6,8 +6,10 @@ import {
     createChat,
     updateChat,
     deleteChat,
+    duplicateChat,
     getMessages,
-    addMessage
+    addMessage,
+    deleteMessage
 } from '../controllers/chatController.js';
 
 const router = express.Router();
@@ -21,7 +23,9 @@ router.use(protect);
 
 router.route('/').get(getChats).post(createChat);
 router.route('/:id').put(updateChat).delete(deleteChat);
+router.route('/:id/duplicate').post(duplicateChat);
 
 router.route('/:id/messages').get(getMessages).post(upload.single('image'), addMessage);
+router.route('/:id/messages/:messageId').delete(deleteMessage);
 
 export default router;

@@ -87,7 +87,7 @@ export const getMessages = async (req, res) => {
     }
 };
 
-export const deleteMessages = async (req, res) => {
+export const deleteMessage = async (req, res) => {
     try {
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
