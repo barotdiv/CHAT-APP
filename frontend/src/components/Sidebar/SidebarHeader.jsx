@@ -5,10 +5,10 @@ import { Plus } from 'lucide-react';
 export default function SidebarHeader({ onNewChat }) {
   return (
     <div className="sidebar-header">
-      <h2 className="sidebar-title">AI Studio</h2>
-      <Button 
-        variant="primary" 
-        className="new-chat-btn" 
+      <h2 className="sidebar-title">NovaAI</h2>
+      <Button
+        variant="primary"
+        className="new-chat-btn"
         onClick={onNewChat}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>

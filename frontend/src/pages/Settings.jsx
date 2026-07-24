@@ -42,11 +42,11 @@ export default function Settings() {
         <h1>Settings</h1>
 
         <div className="settings-content">
-          
+
           {/* General Section */}
           <section className="settings-section">
             <h2>General</h2>
-            
+
 
 
             <div className="setting-item">
@@ -169,9 +169,9 @@ export default function Settings() {
           <section className="settings-section about-section">
             <h2>About</h2>
             <div className="about-info">
-              <p><strong>Application Name:</strong> AI Studio</p>
+              <p><strong>Application Name:</strong> NovaAI</p>
               <p><strong>Version:</strong> 1.0.0 (Build 42)</p>
-              <p><strong>Developer:</strong> AI Solutions Inc.</p>
+              <p><strong>Developer:</strong> NovaAI Team</p>
             </div>
             <div className="about-links">
               <a href="#">Terms of Service</a>

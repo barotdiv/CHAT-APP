@@ -31,7 +31,7 @@ export default function App() {
         {!hideNav && (
           <nav className="top-nav">
             <div className="nav-brand">
-              <span className="brand-text">AI Studio</span>
+              <span className="brand-text">NovaAI</span>
             </div>
             <div className="nav-links">
               <Link to="/chat" className={getNavClass('/chat')}>
