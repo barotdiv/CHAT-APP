@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Pin } from 'lucide-react';
 import ConversationMenu from './ConversationMenu';
 
-export default function ConversationItem({ chat, isActive, onSelect, onRename, onDelete, onTogglePin }) {
+export default function ConversationItem({ chat, isActive, onSelect, onRename, onDelete, onTogglePin, onDuplicate, onExport }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(chat.title);
   const inputRef = useRef(null);
@@ -36,7 +36,7 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
     onTogglePin(chat.id);
   };
 
-  const date = new Date(chat.updatedAt);
+  const date = new Date(chat.updatedAt || Date.now());
   const isToday = new Date().toDateString() === date.toDateString();
   const timeStr = isToday ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : date.toLocaleDateString();
 
@@ -76,6 +76,8 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
           <ConversationMenu
             onRename={() => setIsEditing(true)}
             onDelete={() => onDelete(chat.id)}
+            onDuplicate={() => onDuplicate && onDuplicate(chat.id)}
+            onExport={() => onExport && onExport(chat.id)}
           />
         </div>
       )}
