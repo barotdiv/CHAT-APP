@@ -41,6 +41,9 @@ export default function ChatInterface() {
       if (!e.target.closest('.message-actions-container')) {
         setMessageMenuOpen(null);
       }
+      if (!e.target.closest('.header-export-container')) {
+        setExportMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -102,10 +105,14 @@ export default function ChatInterface() {
   };
 
   useEffect(() => {
+    scrollToBottom();
+  }, [messages, activeChatId, settings?.autoScroll]);
+
+  useEffect(() => {
     // Detect new AI message arrival
     if (messages.length > prevMessageCount.current) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage && (lastMessage.role === 'ai' || lastMessage.role === 'assistant')) {
+      if (lastMessage && (lastMessage.role === 'ai')) {
         if (settings.sound) playSoundEffect();
         if (settings.notifications && document.hidden) triggerNotification(lastMessage.content);
       }
@@ -144,12 +151,12 @@ export default function ChatInterface() {
   let composerStatus = undefined;
   if (!isSupported && settings.voiceInput) {
     composerStatus = { type: 'warning', message: 'Speech recognition is not supported in this browser.' };
-  } else if (error) {
+  } else if (error && settings.voiceInput) {
     composerStatus = { type: 'error', message: error };
   }
 
   return (
-    <div className="layout-container font-size-${settings.fontSize}">
+    <div className={`layout-container font-size-${settings.fontSize}`}>
       <Sidebar
         chats={chats}
         activeChatId={activeChatId}
@@ -163,13 +170,59 @@ export default function ChatInterface() {
       />
 
       <div className="chat-container">
+        {activeChat && (
+          <div className="chat-header-bar">
+            <div className="chat-header-info">
+              <h3 className="chat-header-title">{activeChat.title}</h3>
+              <span className="chat-header-count">{messages.length} messages</span>
+            </div>
+            <div className="chat-header-actions">
+              <button 
+                className="header-action-btn"
+                onClick={() => duplicateChat(activeChat.id)}
+                title="Duplicate conversation"
+              >
+                <Copy size={16} />
+              </button>
+              
+              <div className="header-export-container">
+                <button 
+                  className="header-action-btn"
+                  onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                  title="Export conversation"
+                >
+                  <Download size={16} />
+                </button>
+                {exportMenuOpen && (
+                  <div className="header-export-menu">
+                    <button onClick={() => { exportChat(activeChat.id, 'txt'); setExportMenuOpen(false); }}>
+                      Export as TXT
+                    </button>
+                    <button onClick={() => { exportChat(activeChat.id, 'md'); setExportMenuOpen(false); }}>
+                      Export as Markdown
+                    </button>
+                    <button onClick={() => { exportChat(activeChat.id, 'pdf'); setExportMenuOpen(false); }}>
+                      Print / PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button 
+                className="header-action-btn danger"
+                onClick={() => setChatToDelete(activeChat.id)}
+                title="Delete conversation"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        )}
         <div className="chat-history" ref={chatHistoryRef}>
           <div className="date-divider">
             <div className="divider-line"></div>
-            <span className="divider-text">Today</span>
+            <span className="divider-text">Conversation</span>
             <div className="divider-line"></div>
           </div>
-
           {messages.map((msg) => (
             <div key={msg.id} className={`message-row ${msg.role}`}>
               {msg.role === 'user' && (
@@ -187,8 +240,8 @@ export default function ChatInterface() {
                   )}
                 </div>
               )}
-              <div className={`message-bubble ${msg.role} ${msg.role === 'ai' ? 'markdown-body' : ''}`}>
-                {/* NEW: If the message has an image, display it! */}
+              
+              <div className={`message-bubble ${msg.role} ${msg.role === 'ai' ? 'markdown-body' : ''} ${settings.typingAnimation ? 'animated' : ''}`}>
                 {msg.image && (
                   <img
                     src={msg.image}
@@ -196,7 +249,14 @@ export default function ChatInterface() {
                     className="message-image"
                   />
                 )}
-                {msg.role === 'ai' ? (
+                {msg.role === 'ai' && msg.content.trim().startsWith('https://image.pollinations.ai/') ? (
+                  <img 
+                    src={msg.content.trim()} 
+                    alt="AI Generated Artwork" 
+                    className="message-image" 
+                    style={{ marginTop: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
+                  />
+                ) : msg.role === 'ai' ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
@@ -224,9 +284,12 @@ export default function ChatInterface() {
                 ) : (
                   msg.content
                 )}
-                <div className="message-time">
-                  {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
+                {/* Show Timestamp based on Settings */}
+                {settings.timestamps && (
+                  <div className="message-time">
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
               </div>
               {msg.role === 'ai' && (
                 <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
@@ -248,8 +311,6 @@ export default function ChatInterface() {
         </div>
 
         <div className="chat-input-area">
-
-          {/* NEW: Image Preview Box */}
           {selectedImage && (
             <div className="image-preview-container">
               <div className="image-preview">
@@ -263,7 +324,6 @@ export default function ChatInterface() {
               </div>
             </div>
           )}
-          {/* NEW: Hidden File Input */}
           <input
             type="file"
             accept="image/*"
@@ -275,61 +335,80 @@ export default function ChatInterface() {
               }
             }}
           />
-          <ChatComposer
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSend}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            status={composerStatus}
-            sendActions={
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {/* NEW: The Upload Button */}
-                <Button
-                  variant="ghost"
-                  size="md"
-                  icon={<ImagePlus size={18} strokeWidth={2.5} />}
-                  isIconOnly
-                  aria-label="Upload Image"
-                  onClick={() => fileInputRef.current?.click()}
-                />
-
-                {/* Your existing Mic Button */}
-                <Button
-                  variant="ghost"
-                  size="md"
-                  icon={<Mic size={18} strokeWidth={2.5} />}
-                  isIconOnly
-                  aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
-                  onClick={toggleListening}
-                  className={isListening ? 'mic-listening' : ''}
-                />
-              </div>
-            }
-            sendButton={<ChatSendButton />}
-          />
+          <div onKeyDown={handleKeyDown}>
+            <ChatComposer
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSend}
+              placeholder={settings.enterToSend ? "Type a message (Enter to send, Shift+Enter for new line)..." : "Type a message..."}
+              status={composerStatus}
+              sendActions={
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button
+                    variant="ghost"
+                    size="md"
+                    icon={<ImagePlus size={18} strokeWidth={2.5} />}
+                    isIconOnly
+                    aria-label="Upload Image"
+                    onClick={() => fileInputRef.current?.click()}
+                  />
+                  {/* Show Mic Button based on Voice Input Setting */}
+                  {settings.voiceInput && (
+                    <Button
+                      variant="ghost"
+                      size="md"
+                      icon={<Mic size={18} strokeWidth={2.5} />}
+                      isIconOnly
+                      aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+                      onClick={toggleListening}
+                      className={isListening ? 'mic-listening' : ''}
+                    />
+                  )}
+                </div>
+              }
+              sendButton={<ChatSendButton />}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* Delete Message Modal */}
       {messageToDelete && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Delete Message</h3>
-            <p>Are you sure you want to delete this message?</p>
+            <p>Are you sure you want to delete this message? This action cannot be undone.</p>
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setMessageToDelete(null)}>Cancel</button>
               <button className="btn-danger" onClick={() => {
                 deleteMessage(activeChatId, messageToDelete);
                 setMessageToDelete(null);
                 showToast('Message deleted successfully');
-              }}>Delete Message</button>
+              }}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast */}
+      {/* Delete Chat Modal */}
+      {chatToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Conversation</h3>
+            <p>Are you sure you want to delete this entire conversation? All messages will be permanently removed.</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setChatToDelete(null)}>Cancel</button>
+              <button className="btn-danger" onClick={() => {
+                deleteChat(chatToDelete);
+                setChatToDelete(null);
+                showToast('Conversation deleted');
+              }}>Delete Chat</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
       {toastMessage && (
         <div className="toast-message">
           {toastMessage}
@@ -337,12 +416,106 @@ export default function ChatInterface() {
       )}
 
       <style>{`
+        /* Dynamic Font Size Classes */
+        .font-size-small .message-bubble { font-size: 0.85rem !important; }
+        .font-size-medium .message-bubble { font-size: 0.95rem !important; }
+        .font-size-large .message-bubble { font-size: 1.1rem !important; }
+
         .layout-container {
           display: flex;
           height: 100%;
           width: 100%;
           overflow: hidden;
           background-color: var(--bg-app);
+        }
+
+        .chat-header-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 32px;
+          border-bottom: 1px solid var(--border-color);
+          background-color: var(--bg-app);
+          z-index: 10;
+        }
+
+        .chat-header-title {
+          font-size: 1.05rem;
+          font-weight: 600;
+          margin: 0;
+          color: var(--text-main);
+        }
+
+        .chat-header-count {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .chat-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .header-action-btn {
+          background: transparent;
+          border: 1px solid var(--border-color);
+          color: var(--text-muted);
+          border-radius: 6px;
+          padding: 6px 10px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background-color 0.2s, color 0.2s;
+        }
+
+        .header-action-btn:hover {
+          background-color: var(--hover-overlay);
+          color: var(--text-main);
+        }
+
+        .header-action-btn.danger:hover {
+          color: #ef4444;
+          border-color: #ef4444;
+        }
+
+        .header-export-container {
+          position: relative;
+        }
+
+        .header-export-menu {
+          position: absolute;
+          right: 0;
+          top: 110%;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 4px;
+          z-index: 50;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          min-width: 150px;
+        }
+
+        .header-export-menu button {
+          display: block;
+          width: 100%;
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          color: var(--text-main);
+          font-size: 0.85rem;
+          text-align: left;
+          cursor: pointer;
+          border-radius: 4px;
+        }
+
+        .header-export-menu button:hover {
+          background: var(--hover-overlay);
+        }
+
+        .animated {
+          animation: fadeIn 0.3s ease-out;
         }
 
         /* Sidebar Base Styles */
@@ -389,7 +562,6 @@ export default function ChatInterface() {
           width: 100%;
         }
         
-        /* Ensure any internal containers created by Astryx TextInput take full width */
         .sidebar-search > .search-input-wrapper > div,
         .sidebar-search > .search-input-wrapper > input {
           width: 100%;
@@ -416,7 +588,7 @@ export default function ChatInterface() {
         .sidebar-scroll-area {
           flex: 1;
           overflow-y: auto;
-          padding: 0 16px 16px 16px; /* Align with header and search padding */
+          padding: 0 16px 16px 16px;
         }
         
         .sidebar-scroll-area::-webkit-scrollbar {
@@ -570,7 +742,7 @@ export default function ChatInterface() {
           border-radius: 8px;
           padding: 4px;
           z-index: 50;
-          width: 120px;
+          width: 140px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
 
@@ -597,7 +769,6 @@ export default function ChatInterface() {
           color: #ef4444;
         }
 
-        /* Mobile specific controls */
         .mobile-menu-btn {
           display: none;
           position: absolute;
@@ -631,14 +802,13 @@ export default function ChatInterface() {
           z-index: 35;
         }
 
-        /* Existing Chat Interface Styles adapted for layout */
         .chat-container {
           flex: 1;
           display: flex;
           flex-direction: column;
           background-color: transparent;
           position: relative;
-          min-width: 0; /* Important for flex child to not blow out */
+          min-width: 0;
         }
         
         .chat-history {
@@ -651,7 +821,6 @@ export default function ChatInterface() {
           scroll-behavior: smooth;
         }
 
-        /* Desktop specific adjustments */
         @media (min-width: 769px) {
           .chat-history {
             max-width: 800px;
@@ -682,10 +851,10 @@ export default function ChatInterface() {
           color: var(--text-muted);
           font-weight: 500;
         }
+        
         .message-row {
           display: flex;
           width: 100%;
-          animation: fadeIn 0.3s ease-out;
           align-items: center;
           gap: 8px;
         }
@@ -695,8 +864,8 @@ export default function ChatInterface() {
         .message-row.ai {
           justify-content: flex-start;
         }
+        
         .message-bubble {
-          font-size: 0.95rem;
           line-height: 1.6;
           max-width: 70%;
           word-break: break-word;
@@ -766,7 +935,6 @@ export default function ChatInterface() {
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        /* Markdown Styling for AI responses */
         .markdown-body {
           font-family: inherit;
         }
@@ -858,6 +1026,7 @@ export default function ChatInterface() {
         .markdown-body a:hover {
           text-decoration: underline;
         }
+
         .chat-input-area {
           padding: 24px 32px;
           background-color: transparent;
@@ -1065,7 +1234,7 @@ export default function ChatInterface() {
             display: block;
           }
           .chat-history {
-            padding-top: 64px; /* Space for hamburger menu */
+            padding-top: 64px;
           }
         }
       `}</style>
