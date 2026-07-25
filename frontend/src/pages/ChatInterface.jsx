@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
-import { Mic, MoreVertical, Trash2, ImagePlus, X } from 'lucide-react';
+import { Mic, MoreVertical, Trash2, ImagePlus, X, Download, Copy, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useConversations } from '../hooks/useConversations';
+import { useSettings } from "../context/SettingsContext";
 import Sidebar from '../components/Sidebar/Sidebar';
 
 export default function ChatInterface() {
   const {
     chats, activeChatId, setActiveChatId,
-    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage
+    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage, duplicateChat, exportChat
   } = useConversations();
 
+  const { settings } = useSettings();
   const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
   const messages = activeChat?.messages || [];
 
@@ -26,10 +28,13 @@ export default function ChatInterface() {
 
   const [messageMenuOpen, setMessageMenuOpen] = useState(null);
   const [messageToDelete, setMessageToDelete] = useState(null);
+  const [chatToDelete, setChatToDelete] = useState(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   const { isListening, transcript, isSupported, error, toggleListening } = useSpeechRecognition();
   const prevListening = useRef(false);
+  const prevMessageCount = useRef(messages.length);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -40,6 +45,34 @@ export default function ChatInterface() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const playSoundEffect = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      console.warn("Audio Context sound error:", e);
+    }
+  };
+
+  const triggerNotification = (content) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('NovaAI', {
+        body: content ? (content.length > 60 ? content.substring(0, 60) + '...' : content) : 'New message received!',
+        icon: '/favicon.svg'
+      });
+    }
+  };
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -69,8 +102,17 @@ export default function ChatInterface() {
   };
 
   useEffect(() => {
+    // Detect new AI message arrival
+    if (messages.length > prevMessageCount.current) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && (lastMessage.role === 'ai' || lastMessage.role === 'assistant')) {
+        if (settings.sound) playSoundEffect();
+        if (settings.notifications && document.hidden) triggerNotification(lastMessage.content);
+      }
+    }
+    prevMessageCount.current = messages.length;
     scrollToBottom();
-  }, [messages, activeChatId]);
+  }, [messages, settings.sound, settings.notifications]);
 
   const handleSend = (textOrEvent) => {
     let textToSend = input;
@@ -92,15 +134,22 @@ export default function ChatInterface() {
     setSelectedImage(null);
   };
 
+  const handleKeyDown = (e) => {
+    if (settings.enterToSend && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(input);
+    }
+  };
+
   let composerStatus = undefined;
-  if (!isSupported) {
+  if (!isSupported && settings.voiceInput) {
     composerStatus = { type: 'warning', message: 'Speech recognition is not supported in this browser.' };
   } else if (error) {
     composerStatus = { type: 'error', message: error };
   }
 
   return (
-    <div className="layout-container">
+    <div className="layout-container font-size-${settings.fontSize}">
       <Sidebar
         chats={chats}
         activeChatId={activeChatId}
@@ -109,6 +158,8 @@ export default function ChatInterface() {
         onRenameChat={renameChat}
         onDeleteChat={deleteChat}
         onTogglePin={togglePinChat}
+        onDuplicateChat={duplicateChat}
+        onExportChat={exportChat}
       />
 
       <div className="chat-container">
@@ -228,6 +279,7 @@ export default function ChatInterface() {
             value={input}
             onChange={setInput}
             onSubmit={handleSend}
+            onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             status={composerStatus}
             sendActions={
