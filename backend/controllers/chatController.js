@@ -92,9 +92,10 @@ export const deleteMessage = async (req, res) => {
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-        const message = await Message.findOneAndDelete({ _id: req.params.messageId, chatId: req.params.id });
-        if (!message) return res.status(404).json({ message: 'Message not found' });
-        res.json({ message: 'Message deleted successfully' });
+        const ids = req.params.messageId.split(',').filter(Boolean);
+        const result = await Message.deleteMany({ _id: { $in: ids }, chatId: req.params.id });
+        if (result.deletedCount === 0) return res.status(404).json({ message: 'Message(s) not found' });
+        res.json({ message: 'Message(s) deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

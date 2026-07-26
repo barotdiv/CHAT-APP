@@ -138,8 +138,10 @@ export const useConversations = () => {
   };
 
   const deleteMessage = async (chatId, messageId) => {
+    const idsToDelete = Array.isArray(messageId) ? messageId : messageId.toString().split(',').filter(Boolean);
+    const idsParam = idsToDelete.join(',');
     try {
-      const res = await fetch(`api/chats/${chatId}/messages/${messageId}`, {
+      const res = await fetch(`/api/chats/${chatId}/messages/${idsParam}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
@@ -148,7 +150,7 @@ export const useConversations = () => {
           if (c.id === chatId) {
             return {
               ...c,
-              messages: c.messages.filter(m => m.id !== messageId)
+              messages: c.messages.filter(m => !idsToDelete.includes(m.id))
             };
           }
           return c;

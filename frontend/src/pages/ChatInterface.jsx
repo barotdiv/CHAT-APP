@@ -26,8 +26,8 @@ export default function ChatInterface() {
   const chatHistoryRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [messageMenuOpen, setMessageMenuOpen] = useState(null);
-  const [messageToDelete, setMessageToDelete] = useState(null);
+  const [pairMenuOpen, setPairMenuOpen] = useState(null);
+  const [pairToDelete, setPairToDelete] = useState(null);
   const [chatToDelete, setChatToDelete] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -36,10 +36,46 @@ export default function ChatInterface() {
   const prevListening = useRef(false);
   const prevMessageCount = useRef(messages.length);
 
+  const getMessagePairs = (messagesList) => {
+    const pairs = [];
+    let currentPair = null;
+
+    messagesList.forEach((msg) => {
+      if (msg.role === 'user') {
+        if (currentPair) {
+          pairs.push(currentPair);
+        }
+        currentPair = {
+          id: msg.id,
+          userMsg: msg,
+          aiMsg: null,
+        };
+      } else if (msg.role === 'ai') {
+        if (currentPair && !currentPair.aiMsg) {
+          currentPair.aiMsg = msg;
+          pairs.push(currentPair);
+          currentPair = null;
+        } else {
+          pairs.push({
+            id: msg.id,
+            userMsg: null,
+            aiMsg: msg,
+          });
+        }
+      }
+    });
+
+    if (currentPair) {
+      pairs.push(currentPair);
+    }
+
+    return pairs;
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.message-actions-container')) {
-        setMessageMenuOpen(null);
+      if (!e.target.closest('.pair-actions-container')) {
+        setPairMenuOpen(null);
       }
       if (!e.target.closest('.header-export-container')) {
         setExportMenuOpen(false);
@@ -228,87 +264,88 @@ export default function ChatInterface() {
             <span className="divider-text">Conversation</span>
             <div className="divider-line"></div>
           </div>
-          {messages.map((msg) => (
-            <div key={msg.id} className={`message-row ${msg.role}`}>
-              {msg.role === 'user' && (
-                <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
-                  <button className="msg-menu-btn" onClick={() => setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id)}>
-                    <MoreVertical size={16} />
-                  </button>
-                  {messageMenuOpen === msg.id && (
-                    <div className="msg-dropdown">
-                      <button className="msg-dropdown-item delete" onClick={() => { setMessageToDelete(msg.id); setMessageMenuOpen(null); }}>
-                        <Trash2 size={14} />
-                        Delete Message
-                      </button>
-                    </div>
-                  )}
+          {getMessagePairs(messages).map((pair) => (
+            <div key={pair.id} className="chat-pair-block">
+              <div className="pair-actions-container">
+                <button
+                  className="pair-delete-btn"
+                  title="Delete question & answer"
+                  onClick={() => setPairToDelete(pair)}
+                >
+                  <Trash2 size={14} />
+                  <span>Delete</span>
+                </button>
+              </div>
+
+              {pair.userMsg && (
+                <div className="message-row user">
+                  <div className={`message-bubble user ${settings.typingAnimation ? 'animated' : ''}`}>
+                    {pair.userMsg.image && (
+                      <img
+                        src={pair.userMsg.image}
+                        alt="Uploaded attachment"
+                        className="message-image"
+                      />
+                    )}
+                    {pair.userMsg.content}
+                    {settings.timestamps && (
+                      <div className="message-time">
+                        {pair.userMsg.createdAt ? new Date(pair.userMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-              
-              <div className={`message-bubble ${msg.role} ${msg.role === 'ai' ? 'markdown-body' : ''} ${settings.typingAnimation ? 'animated' : ''}`}>
-                {msg.image && (
-                  <img
-                    src={msg.image}
-                    alt="Uploaded attachment"
-                    className="message-image"
-                  />
-                )}
-                {msg.role === 'ai' && msg.content.trim().startsWith('https://image.pollinations.ai/') ? (
-                  <img 
-                    src={msg.content.trim()} 
-                    alt="AI Generated Artwork" 
-                    className="message-image" 
-                    style={{ marginTop: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
-                  />
-                ) : msg.role === 'ai' ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({ node, inline, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '')
-                        return !inline && match ? (
-                          <SyntaxHighlighter
-                            style={vscDarkPlus}
-                            language={match[1]}
-                            PreTag="div"
-                            {...props}
-                          >
-                            {String(children).replace(/\n$/, '')}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        )
-                      }
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                ) : (
-                  msg.content
-                )}
-                {/* Show Timestamp based on Settings */}
-                {settings.timestamps && (
-                  <div className="message-time">
-                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+              {pair.aiMsg && (
+                <div className="message-row ai">
+                  <div className={`message-bubble ai markdown-body ${settings.typingAnimation ? 'animated' : ''}`}>
+                    {pair.aiMsg.image && (
+                      <img
+                        src={pair.aiMsg.image}
+                        alt="Uploaded attachment"
+                        className="message-image"
+                      />
+                    )}
+                    {pair.aiMsg.content.trim().startsWith('https://image.pollinations.ai/') ? (
+                      <img 
+                        src={pair.aiMsg.content.trim()} 
+                        alt="AI Generated Artwork" 
+                        className="message-image" 
+                        style={{ marginTop: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
+                      />
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }) {
+                            const match = /language-(\w+)/.exec(className || '')
+                            return !inline && match ? (
+                              <SyntaxHighlighter
+                                style={vscDarkPlus}
+                                language={match[1]}
+                                PreTag="div"
+                                {...props}
+                              >
+                                {String(children).replace(/\n$/, '')}
+                              </SyntaxHighlighter>
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+                        }}
+                      >
+                        {pair.aiMsg.content}
+                      </ReactMarkdown>
+                    )}
+                    {settings.timestamps && (
+                      <div className="message-time">
+                        {pair.aiMsg.createdAt ? new Date(pair.aiMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {msg.role === 'ai' && (
-                <div className={`message-actions-container ${messageMenuOpen === msg.id ? 'active' : ''}`}>
-                  <button className="msg-menu-btn" onClick={() => setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id)}>
-                    <MoreVertical size={16} />
-                  </button>
-                  {messageMenuOpen === msg.id && (
-                    <div className="msg-dropdown">
-                      <button className="msg-dropdown-item delete" onClick={() => { setMessageToDelete(msg.id); setMessageMenuOpen(null); }}>
-                        <Trash2 size={14} />
-                        Delete Message
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -378,18 +415,19 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      {/* Delete Message Modal */}
-      {messageToDelete && (
+      {/* Delete Pair Modal */}
+      {pairToDelete && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Delete Message</h3>
-            <p>Are you sure you want to delete this message? This action cannot be undone.</p>
+            <h3>Delete Question & Response</h3>
+            <p>Are you sure you want to delete this question and its response? This action cannot be undone.</p>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setMessageToDelete(null)}>Cancel</button>
+              <button className="btn-cancel" onClick={() => setPairToDelete(null)}>Cancel</button>
               <button className="btn-danger" onClick={() => {
-                deleteMessage(activeChatId, messageToDelete);
-                setMessageToDelete(null);
-                showToast('Message deleted successfully');
+                const idsToDelete = [pairToDelete.userMsg?.id, pairToDelete.aiMsg?.id].filter(Boolean);
+                deleteMessage(activeChatId, idsToDelete);
+                setPairToDelete(null);
+                showToast('Question and response deleted successfully');
               }}>Delete</button>
             </div>
           </div>
@@ -474,6 +512,57 @@ export default function ChatInterface() {
           align-items: center;
           justify-content: center;
           transition: background-color 0.2s, color 0.2s;
+        }
+
+        .chat-pair-block {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 12px 16px;
+          border-radius: 12px;
+          border: 1px solid transparent;
+          transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .chat-pair-block:hover {
+          background-color: rgba(255, 255, 255, 0.03);
+          border-color: var(--border-color);
+        }
+
+        .pair-actions-container {
+          position: absolute;
+          top: 8px;
+          right: 12px;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+          z-index: 10;
+        }
+
+        .chat-pair-block:hover .pair-actions-container {
+          opacity: 1;
+        }
+
+        .pair-delete-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          color: var(--text-muted);
+          font-size: 0.75rem;
+          font-weight: 500;
+          padding: 4px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .pair-delete-btn:hover {
+          color: #ef4444;
+          border-color: #ef4444;
+          background: rgba(239, 68, 68, 0.1);
         }
 
         .header-action-btn:hover {
