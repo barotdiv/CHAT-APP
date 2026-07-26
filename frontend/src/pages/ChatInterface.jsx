@@ -121,30 +121,35 @@ export default function ChatInterface() {
     scrollToBottom();
   }, [messages, settings.sound, settings.notifications]);
 
-  const handleSend = (textOrEvent) => {
+  const isSendingRef = useRef(false);
+
+  const handleSend = async (textOrEvent) => {
+    if (isSendingRef.current) return;
+
     let textToSend = input;
-    if (textOrEvent && typeof textOrEvent.preventDefault === 'function') {
-      textOrEvent.preventDefault();
-    } else if (typeof textOrEvent === 'string') {
+    if (typeof textOrEvent === 'string' && textOrEvent.trim()) {
       textToSend = textOrEvent;
+    } else if (textOrEvent && typeof textOrEvent.preventDefault === 'function') {
+      textOrEvent.preventDefault();
     }
 
     if (!textToSend.trim() && !selectedImage) return;
 
-    // Add user message via hook and catch any API errors
-    addMessage(activeChatId, 'user', textToSend, selectedImage).catch(err => {
-      showToast(err.message || 'Failed to send message');
-    });
+    isSendingRef.current = true;
+
+    const currentImage = selectedImage;
+    const currentText = textToSend;
 
     setInput('');
     setBaseInput('');
     setSelectedImage(null);
-  };
 
-  const handleKeyDown = (e) => {
-    if (settings.enterToSend && e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend(input);
+    try {
+      await addMessage(activeChatId, 'user', currentText, currentImage);
+    } catch (err) {
+      showToast(err?.message || 'Failed to send message');
+    } finally {
+      isSendingRef.current = false;
     }
   };
 
@@ -335,40 +340,41 @@ export default function ChatInterface() {
               }
             }}
           />
-          <div onKeyDown={handleKeyDown}>
-            <ChatComposer
-              value={input}
-              onChange={setInput}
-              onSubmit={handleSend}
-              placeholder={settings.enterToSend ? "Type a message (Enter to send, Shift+Enter for new line)..." : "Type a message..."}
-              status={composerStatus}
-              sendActions={
-                <div style={{ display: 'flex', gap: '8px' }}>
+          <ChatComposer
+            value={input}
+            onChange={setInput}
+            onSubmit={(text) => {
+              if (!settings.enterToSend && text) return;
+              handleSend(text);
+            }}
+            placeholder={settings.enterToSend ? "Type a message (Enter to send, Shift+Enter for new line)..." : "Type a message..."}
+            status={composerStatus}
+            sendActions={
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Button
+                  variant="ghost"
+                  size="md"
+                  icon={<ImagePlus size={18} strokeWidth={2.5} />}
+                  isIconOnly
+                  aria-label="Upload Image"
+                  onClick={() => fileInputRef.current?.click()}
+                />
+                {/* Show Mic Button based on Voice Input Setting */}
+                {settings.voiceInput && (
                   <Button
                     variant="ghost"
                     size="md"
-                    icon={<ImagePlus size={18} strokeWidth={2.5} />}
+                    icon={<Mic size={18} strokeWidth={2.5} />}
                     isIconOnly
-                    aria-label="Upload Image"
-                    onClick={() => fileInputRef.current?.click()}
+                    aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+                    onClick={toggleListening}
+                    className={isListening ? 'mic-listening' : ''}
                   />
-                  {/* Show Mic Button based on Voice Input Setting */}
-                  {settings.voiceInput && (
-                    <Button
-                      variant="ghost"
-                      size="md"
-                      icon={<Mic size={18} strokeWidth={2.5} />}
-                      isIconOnly
-                      aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
-                      onClick={toggleListening}
-                      className={isListening ? 'mic-listening' : ''}
-                    />
-                  )}
-                </div>
-              }
-              sendButton={<ChatSendButton />}
-            />
-          </div>
+                )}
+              </div>
+            }
+            sendButton={<ChatSendButton onSend={() => handleSend(input)} />}
+          />
         </div>
       </div>
 
