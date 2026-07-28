@@ -227,15 +227,16 @@ export const useConversations = () => {
     if (role === 'ai') return;
 
     let targetChatId = chatId;
+    let createdChatObj = null;
+
     if (!targetChatId) {
       try {
         const res = await fetch('/api/chats', { method: 'POST', headers: getHeaders() });
         if (res.ok) {
           const newChat = await res.json();
-          const formattedChat = { ...newChat, id: newChat._id, messages: [] };
-          setChats(prev => [formattedChat, ...prev]);
-          setActiveChatId(formattedChat.id);
-          targetChatId = formattedChat.id;
+          createdChatObj = { ...newChat, id: newChat._id, messages: [] };
+          targetChatId = createdChatObj.id;
+          setActiveChatId(targetChatId);
         }
       } catch (error) {
         console.error("Failed to auto-create chat", error);
@@ -254,10 +255,15 @@ export const useConversations = () => {
 
     const tempMessage = { id: tempId, role: 'user', content, image: localImageUrl, createdAt: new Date().toISOString() };
 
-    setChats(prev => prev.map(c => {
-      if (c.id === targetChatId) return { ...c, messages: [...c.messages, tempMessage] };
-      return c;
-    }));
+    setChats(prev => {
+      const exists = prev.some(c => c.id === targetChatId);
+      if (exists) {
+        return prev.map(c => c.id === targetChatId ? { ...c, messages: [...c.messages, tempMessage] } : c);
+      } else if (createdChatObj) {
+        return [{ ...createdChatObj, messages: [tempMessage] }, ...prev];
+      }
+      return prev;
+    });
 
     try {
       let bodyData;
@@ -286,28 +292,43 @@ export const useConversations = () => {
       if (res.ok) {
         const { userMessage, aiMessage, chatTitle } = await res.json();
 
-        setChats(prev => prev.map(c => {
-          if (c.id === targetChatId) {
-            const filtered = c.messages.filter(m =>
-              m.id !== tempId &&
-              m.id !== userMessage._id &&
-              m.id !== aiMessage._id
-            );
-            return {
-              ...c,
-              title: chatTitle || c.title,
+        setChats(prev => {
+          const exists = prev.some(c => c.id === targetChatId);
+          if (exists) {
+            return prev.map(c => {
+              if (c.id === targetChatId) {
+                const filtered = c.messages.filter(m =>
+                  m.id !== tempId &&
+                  m.id !== userMessage._id &&
+                  m.id !== aiMessage._id
+                );
+                return {
+                  ...c,
+                  title: chatTitle || c.title,
+                  messages: [
+                    ...filtered,
+                    { ...userMessage, id: userMessage._id },
+                    { ...aiMessage, id: aiMessage._id }
+                  ]
+                };
+              }
+              return c;
+            });
+          } else {
+            return [{
+              id: targetChatId,
+              _id: targetChatId,
+              title: chatTitle || 'New Chat',
               messages: [
-                ...filtered,
                 { ...userMessage, id: userMessage._id },
                 { ...aiMessage, id: aiMessage._id }
               ]
-            };
+            }, ...prev];
           }
-          return c;
-        }));
+        });
       } else {
         const errorData = await res.json();
-        console.error("Backend Error:", errorData.message);
+        console.error("Backend Error:", errorData?.message);
       }
     } catch (error) {
       console.error(error);

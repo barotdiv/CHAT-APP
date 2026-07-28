@@ -60,7 +60,7 @@ export const duplicateChat = async (req, res) => {
             title: `${originalChat.title} (Copy)`,
             isPinned: false
         });
-        const originalMessages = await Messages.find({ chatId: req.params.id }).sort({ createdAt: 1 });
+        const originalMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
         if (originalMessages.length > 0) {
             const newMessages = originalMessages.map(msg => ({
                 chatId: newChat._id,

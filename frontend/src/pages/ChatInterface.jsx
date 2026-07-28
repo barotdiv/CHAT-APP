@@ -289,41 +289,50 @@ export default function ChatInterface() {
               }
             }}
           />
-          <ChatComposer
-            value={input}
-            onChange={setInput}
-            onSubmit={(text) => {
-              if (!settings.enterToSend && text) return;
-              handleSend(text);
-            }}
-            placeholder={settings.enterToSend ? "Type a message (Enter to send, Shift+Enter for new line)..." : "Type a message..."}
-            status={composerStatus}
-            sendActions={
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <Button
-                  variant="ghost"
-                  size="md"
-                  icon={<ImagePlus size={18} strokeWidth={2.5} />}
-                  isIconOnly
-                  aria-label="Upload Image"
-                  onClick={() => fileInputRef.current?.click()}
-                />
-                {/* Show Mic Button based on Voice Input Setting */}
-                {settings.voiceInput && (
+          <div onKeyDown={(e) => {
+            if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                handleSend(input);
+              }
+            }
+          }}>
+            <ChatComposer
+              value={input}
+              onChange={setInput}
+              onSubmit={(text) => {
+                const textToSend = typeof text === 'string' && text.trim() ? text : input;
+                handleSend(textToSend);
+              }}
+              placeholder={settings.enterToSend ? "Type a message (Enter/Tab to send, Shift+Enter for new line)..." : "Type a message..."}
+              status={composerStatus}
+              sendActions={
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <Button
                     variant="ghost"
                     size="md"
-                    icon={<Mic size={18} strokeWidth={2.5} />}
+                    icon={<ImagePlus size={18} strokeWidth={2.5} />}
                     isIconOnly
-                    aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
-                    onClick={toggleListening}
-                    className={isListening ? 'mic-listening' : ''}
+                    aria-label="Upload Image"
+                    onClick={() => fileInputRef.current?.click()}
                   />
-                )}
-              </div>
-            }
-            sendButton={<ChatSendButton onSend={() => handleSend(input)} />}
-          />
+                  {/* Show Mic Button based on Voice Input Setting */}
+                  {settings.voiceInput && (
+                    <Button
+                      variant="ghost"
+                      size="md"
+                      icon={<Mic size={18} strokeWidth={2.5} />}
+                      isIconOnly
+                      aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+                      onClick={toggleListening}
+                      className={isListening ? 'mic-listening' : ''}
+                    />
+                  )}
+                </div>
+              }
+              sendButton={<ChatSendButton onSend={() => handleSend(input)} />}
+            />
+          </div>
         </div>
       </div>
 
