@@ -160,9 +160,15 @@ export const addMessage = async (req, res) => {
         });
 
         // 5. Initialize Gemini
+        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === '' || process.env.GEMINI_API_KEY.startsWith("AQ.")) {
+            return res.status(401).json({
+                message: "Invalid or missing GEMINI_API_KEY in backend/.env. Please get a free API key from https://aistudio.google.com/app/apikey and put it in backend/.env"
+            });
+        }
+
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({
-            model: "gemini-flash-latest",
+            model: "gemini-1.5-flash",
             systemInstruction: "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt} (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image."
         });
 
@@ -191,6 +197,10 @@ export const addMessage = async (req, res) => {
         res.status(201).json({ userMessage, aiMessage, chatTitle: chat.title });
     } catch (error) {
         console.error("AI Error:", error);
-        res.status(500).json({ message: error.message });
+        let errorMsg = error.message;
+        if (errorMsg && (errorMsg.includes("401") || errorMsg.includes("API key not valid"))) {
+            errorMsg = "Gemini API 401 Unauthorized: Invalid API Key. Please get a valid key from https://aistudio.google.com/app/apikey and set GEMINI_API_KEY in backend/.env";
+        }
+        res.status(500).json({ message: errorMsg });
     }
 };

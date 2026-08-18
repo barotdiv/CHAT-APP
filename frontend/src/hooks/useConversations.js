@@ -329,6 +329,20 @@ export const useConversations = () => {
       } else {
         const errorData = await res.json();
         console.error("Backend Error:", errorData?.message);
+        const errorMessageText = `⚠️ Backend Error: ${errorData?.message || 'Failed to get response'}`;
+        setChats(prev => prev.map(c => {
+          if (c.id === targetChatId) {
+            return {
+              ...c,
+              messages: [
+                ...c.messages.filter(m => m.id !== tempId),
+                { id: tempId, role: 'user', content, image: localImageUrl, createdAt: new Date().toISOString() },
+                { id: Date.now().toString(), role: 'ai', content: errorMessageText }
+              ]
+            };
+          }
+          return c;
+        }));
       }
     } catch (error) {
       console.error(error);
