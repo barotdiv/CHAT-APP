@@ -166,10 +166,10 @@ export const addMessage = async (req, res) => {
             });
         }
 
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI(process.process?.env?.GEMINI_API_KEY || process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({
             model: "gemini-3.5-flash",
-            systemInstruction: "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt} (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image."
+            systemInstruction: "You are a helpful AI assistant. If the user asks you to generate, draw, create, or show an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt}?model=flux&width=1024&height=1024&nologo=true (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax, code blocks, or extra text in your reply when generating an image."
         });
 
         // 6. Start the chat session
@@ -177,7 +177,21 @@ export const addMessage = async (req, res) => {
 
         // 7. Send the new message (text + optional image) to the AI
         const result = await chatSession.sendMessage(currentMessageParts);
-        const aiReplyText = result.response.text();
+        let aiReplyText = result.response.text();
+
+        // Clean & format image URL if present
+        const pollinationsMatch = aiReplyText.match(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]]+/i);
+        if (pollinationsMatch) {
+            let imageUrl = pollinationsMatch[0];
+            if (!imageUrl.includes('model=flux')) {
+                const joiner = imageUrl.includes('?') ? '&' : '?';
+                imageUrl += `${joiner}model=flux&width=1024&height=1024&nologo=true`;
+            }
+            if (!imageUrl.includes('seed=')) {
+                imageUrl += `&seed=${Math.floor(Math.random() * 1000000)}`;
+            }
+            aiReplyText = imageUrl;
+        }
 
         // 8. Save AI reply
         const aiMessage = await Message.create({

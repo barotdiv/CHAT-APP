@@ -210,12 +210,12 @@ export default function ChatInterface() {
                         className="message-image"
                       />
                     )}
-                    {msg.content.trim().startsWith('https://image.pollinations.ai/') ? (
+                    {/https?:\/\/image\.pollinations\.ai\//i.test(msg.content) ? (
                       <img 
-                        src={msg.content.trim()} 
+                        src={msg.content.match(/https?:\/\/image\.pollinations\.ai\/[^\s)\]"]+/i)?.[0] || msg.content.trim()} 
                         alt="AI Generated Artwork" 
                         className="message-image" 
-                        style={{ marginTop: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
+                        style={{ marginTop: '8px', maxWidth: '100%', borderRadius: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
                       />
                     ) : (
                       <ReactMarkdown
