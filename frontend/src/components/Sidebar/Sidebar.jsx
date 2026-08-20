@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import SidebarHeader from './SidebarHeader';
 import SearchBar from './SearchBar';
 import ConversationList from './ConversationList';
-import { Menu, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export default function Sidebar({
   chats, activeChatId, onNewChat, onSelectChat, onRenameChat, onDeleteChat, onTogglePin, onDuplicateChat, onExportChat
@@ -18,13 +18,6 @@ export default function Sidebar({
 
   return (
     <>
-      <button
-        className="mobile-menu-btn"
-        onClick={toggleMobileSidebar}
-        aria-label="Toggle sidebar"
-      >
-        <Menu size={24} />
-      </button>
 
       {isMobileOpen && (
         <div className="sidebar-overlay" onClick={toggleMobileSidebar}></div>

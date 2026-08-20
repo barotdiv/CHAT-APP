@@ -382,6 +382,22 @@ export default function ChatInterface() {
         @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
         .message-bubble.is-streaming { border-left: 3px solid var(--btn-primary-bg, #3b82f6); }
         .toast-message { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 500; z-index: 100; }
+
+        .conversation-list { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+        .chat-section { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+        .chat-section-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 6px 8px 4px 8px; letter-spacing: 0.05em; }
+        .conversation-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: background-color 0.2s, color 0.2s; user-select: none; width: 100%; box-sizing: border-box; }
+        .conversation-item:hover { background-color: var(--hover-overlay); color: var(--text-main); }
+        .conversation-item.active { background-color: var(--hover-overlay); color: var(--text-main); font-weight: 500; }
+        .chat-icon { flex-shrink: 0; color: var(--text-muted); }
+        .conversation-item.active .chat-icon { color: var(--btn-primary-bg, #3b82f6); }
+        .chat-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; line-height: 1.4; color: inherit; }
+        .chat-rename-input { flex: 1; min-width: 0; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; padding: 2px 6px; font-size: 0.9rem; outline: none; }
+        .chat-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
+        .pin-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: opacity 0.2s, color 0.2s; }
+        .conversation-item:hover .pin-btn, .pin-btn.is-pinned { opacity: 1; }
+        .pin-btn.is-pinned { color: var(--btn-primary-bg, #3b82f6); opacity: 1; }
+        .pin-btn:hover { background-color: var(--hover-overlay); color: var(--text-main); }
       `}</style>
     </div>
   );

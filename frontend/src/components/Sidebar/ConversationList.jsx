@@ -6,7 +6,7 @@ export default function ConversationList({ chats, activeChatId, onSelectChat, on
   const unpinnedChats = chats.filter(chat => !chat.isPinned);
 
   if (chats.length === 0) {
-    return <div className="empty-list">No conversations found.</div>;
+    return null;
   }
 
   return (

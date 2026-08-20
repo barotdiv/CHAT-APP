@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Pin } from 'lucide-react';
-import ConversationMenu from './ConversationMenu';
 
-export default function ConversationItem({ chat, isActive, onSelect, onRename, onDelete, onTogglePin, onDuplicate, onExport }) {
+export default function ConversationItem({ chat, isActive, onSelect, onRename, onDelete, onTogglePin }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(chat.title);
   const inputRef = useRef(null);
@@ -36,10 +35,6 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
     onTogglePin(chat.id);
   };
 
-  const date = new Date(chat.updatedAt || Date.now());
-  const isToday = new Date().toDateString() === date.toDateString();
-  const timeStr = isToday ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : date.toLocaleDateString();
-
   return (
     <div
       className={`conversation-item ${isActive ? 'active' : ''} ${chat.isPinned ? 'pinned' : ''}`}
@@ -47,22 +42,19 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
     >
       <MessageSquare size={18} className="chat-icon" />
 
-      <div className="chat-info">
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            className="chat-rename-input"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            onBlur={handleSaveRename}
-            onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span className="chat-title">{chat.title}</span>
-        )}
-        <span className="chat-time">{timeStr}</span>
-      </div>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          className="chat-rename-input"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onBlur={handleSaveRename}
+          onKeyDown={handleKeyDown}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span className="chat-title">{chat.title}</span>
+      )}
 
       {!isEditing && (
         <div className="chat-actions" onClick={e => e.stopPropagation()}>
@@ -73,12 +65,6 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
           >
             <Pin size={16} fill={chat.isPinned ? "currentColor" : "none"} />
           </button>
-          <ConversationMenu
-            onRename={() => setIsEditing(true)}
-            onDelete={() => onDelete(chat.id)}
-            onDuplicate={() => onDuplicate && onDuplicate(chat.id)}
-            onExport={() => onExport && onExport(chat.id)}
-          />
         </div>
       )}
     </div>

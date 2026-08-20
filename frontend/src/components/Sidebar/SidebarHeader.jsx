@@ -5,7 +5,6 @@ import { Plus } from 'lucide-react';
 export default function SidebarHeader({ onNewChat }) {
   return (
     <div className="sidebar-header">
-      <h2 className="sidebar-title">NovaAI</h2>
       <Button
         variant="primary"
         className="new-chat-btn"
