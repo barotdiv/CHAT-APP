@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
-import { Mic, MoreVertical, Trash2, ImagePlus, X, Download, Copy, Share2 } from 'lucide-react';
+import { Mic, ImagePlus, X, Copy, RotateCcw, Edit2, Play, Square, Settings, ShieldAlert, Sparkles, Code, Mail, Lightbulb, HelpCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -12,25 +12,37 @@ import Sidebar from '../components/Sidebar/Sidebar';
 
 export default function ChatInterface() {
   const {
-    chats, activeChatId, setActiveChatId,
-    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage, duplicateChat, exportChat
+    chats, activeChatId, activeChat, setActiveChatId,
+    isTemporaryChat, startTemporaryChat, exitTemporaryChat,
+    createNewChat, deleteChat, renameChat, togglePinChat, addMessage, deleteMessage, duplicateChat, exportChat,
+    stopGenerating, regenerateMessage, editUserMessage, continueResponse, setChatModel, setChatSystemPrompt
   } = useConversations();
 
   const { settings } = useSettings();
-  const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
   const messages = activeChat?.messages || [];
+  const isStreamingAny = messages.some(m => m.isStreaming);
 
   const [input, setInput] = useState('');
   const [baseInput, setBaseInput] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [showSystemPromptModal, setShowSystemPromptModal] = useState(false);
+  const [systemPromptInput, setSystemPromptInput] = useState('');
+
   const chatHistoryRef = useRef(null);
   const fileInputRef = useRef(null);
-
   const [toastMessage, setToastMessage] = useState('');
 
   const { isListening, transcript, isSupported, error, toggleListening } = useSpeechRecognition();
   const prevListening = useRef(false);
   const prevMessageCount = useRef(messages.length);
+
+  useEffect(() => {
+    if (activeChat) {
+      setSystemPromptInput(activeChat.systemInstruction || '');
+    }
+  }, [activeChatId, activeChat?.systemInstruction]);
 
   const handleCopyMessage = (content) => {
     if (navigator.clipboard && content) {
@@ -39,45 +51,13 @@ export default function ChatInterface() {
     }
   };
 
-  const playSoundEffect = () => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {
-      console.warn("Audio Context sound error:", e);
-    }
-  };
-
-  const triggerNotification = (content) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('NovaAI', {
-        body: content ? (content.length > 60 ? content.substring(0, 60) + '...' : content) : 'New message received!',
-        icon: '/favicon.svg'
-      });
-    }
-  };
-
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage('');
-    }, 3000);
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
   useEffect(() => {
-    if (isListening && !prevListening.current) {
-      setBaseInput(input);
-    }
+    if (isListening && !prevListening.current) setBaseInput(input);
     prevListening.current = isListening;
   }, [isListening, input]);
 
@@ -98,19 +78,6 @@ export default function ChatInterface() {
     scrollToBottom();
   }, [messages, activeChatId, settings?.autoScroll]);
 
-  useEffect(() => {
-    // Detect new AI message arrival
-    if (messages.length > prevMessageCount.current) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && (lastMessage.role === 'ai')) {
-        if (settings.sound) playSoundEffect();
-        if (settings.notifications && document.hidden) triggerNotification(lastMessage.content);
-      }
-    }
-    prevMessageCount.current = messages.length;
-    scrollToBottom();
-  }, [messages, settings.sound, settings.notifications]);
-
   const isSendingRef = useRef(false);
 
   const handleSend = async (textOrEvent) => {
@@ -126,7 +93,6 @@ export default function ChatInterface() {
     if (!textToSend.trim() && !selectedImage) return;
 
     isSendingRef.current = true;
-
     const currentImage = selectedImage;
     const currentText = textToSend;
 
@@ -143,6 +109,24 @@ export default function ChatInterface() {
     }
   };
 
+  const handleSaveSystemPrompt = () => {
+    if (activeChat) {
+      setChatSystemPrompt(activeChat.id, systemPromptInput);
+      setShowSystemPromptModal(false);
+      showToast('System instructions updated');
+    }
+  };
+
+  const handleSaveEditUserMessage = async (msgId) => {
+    if (!editText.trim()) return;
+    setEditingMsgId(null);
+    try {
+      await editUserMessage(activeChatId, msgId, editText);
+    } catch (err) {
+      showToast('Failed to edit message');
+    }
+  };
+
   let composerStatus = undefined;
   if (!isSupported && settings.voiceInput) {
     composerStatus = { type: 'warning', message: 'Speech recognition is not supported in this browser.' };
@@ -150,12 +134,20 @@ export default function ChatInterface() {
     composerStatus = { type: 'error', message: error };
   }
 
+  const SUGGESTED_PROMPTS = [
+    { icon: <Code size={20} />, title: "Write a script", prompt: "Write a Python script to scrape top news headlines" },
+    { icon: <HelpCircle size={20} />, title: "Explain a concept", prompt: "Explain Quantum Computing in simple terms" },
+    { icon: <Mail size={20} />, title: "Draft an email", prompt: "Draft a polite follow-up email to a job interviewer" },
+    { icon: <Lightbulb size={20} />, title: "Brainstorm ideas", prompt: "Give me 5 innovative SaaS business ideas for 2026" }
+  ];
+
   return (
     <div className={`layout-container font-size-${settings.fontSize}`}>
       <Sidebar
         chats={chats}
         activeChatId={activeChatId}
         onNewChat={createNewChat}
+        onTemporaryChat={startTemporaryChat}
         onSelectChat={setActiveChatId}
         onRenameChat={renameChat}
         onDeleteChat={deleteChat}
@@ -165,113 +157,240 @@ export default function ChatInterface() {
       />
 
       <div className="chat-container">
-        <div className="chat-history" ref={chatHistoryRef}>
-          <div className="date-divider">
-            <div className="divider-line"></div>
-            <span className="divider-text">Conversation</span>
-            <div className="divider-line"></div>
+        {/* Header Toolbar */}
+        <div className="chat-header-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 className="chat-header-title">{activeChat?.title || 'New Chat'}</h3>
+            {isTemporaryChat && (
+              <span className="incognito-badge">
+                <ShieldAlert size={14} /> Incognito Mode
+              </span>
+            )}
           </div>
-          {messages.map((msg) => (
-            <div key={msg.id} className={`message-row ${msg.role}`}>
-              {msg.role === 'user' ? (
-                <>
-                  <div className="message-actions-container">
-                    <button
-                      className="msg-action-btn"
-                      title="Copy message"
-                      onClick={() => handleCopyMessage(msg.content)}
-                    >
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                  <div className={`message-bubble user ${settings.typingAnimation ? 'animated' : ''}`}>
-                    {msg.image && (
-                      <img
-                        src={msg.image}
-                        alt="Uploaded attachment"
-                        className="message-image"
-                      />
-                    )}
-                    {msg.content}
-                    {settings.timestamps && (
-                      <div className="message-time">
-                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className={`message-bubble ai markdown-body ${settings.typingAnimation ? 'animated' : ''} ${msg.isStreaming ? 'is-streaming' : ''}`}>
-                    {msg.image && (
-                      <img
-                        src={msg.image}
-                        alt="Uploaded attachment"
-                        className="message-image"
-                      />
-                    )}
-                    {msg.isStreaming && !msg.content ? (
-                      <div className="typing-indicator">
-                        <span>AI is thinking</span>
-                        <span className="dot">.</span>
-                        <span className="dot">.</span>
-                        <span className="dot">.</span>
-                      </div>
-                    ) : /https?:\/\/image\.pollinations\.ai\//i.test(msg.content) ? (
-                      <img 
-                        src={msg.content.match(/https?:\/\/image\.pollinations\.ai\/[^\s)\]"]+/i)?.[0] || msg.content.trim()} 
-                        alt="AI Generated Artwork" 
-                        className="message-image" 
-                        style={{ marginTop: '8px', maxWidth: '100%', borderRadius: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
-                      />
-                    ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ node, inline, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || '')
-                            return !inline && match ? (
-                              <SyntaxHighlighter
-                                style={vscDarkPlus}
-                                language={match[1]}
-                                PreTag="div"
-                                {...props}
-                              >
-                                {String(children).replace(/\n$/, '')}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            )
-                          }
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    )}
-                    {settings.timestamps && (
-                      <div className="message-time">
-                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    )}
-                  </div>
-                  <div className="message-actions-container">
-                    <button
-                      className="msg-action-btn"
-                      title="Copy response"
-                      onClick={() => handleCopyMessage(msg.content)}
-                    >
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+          <div className="chat-header-actions">
+            {/* Model Selector */}
+            <select
+              className="model-select-dropdown"
+              value={activeChat?.model || 'gemini-2.5-flash'}
+              onChange={(e) => setChatModel(activeChatId, e.target.value)}
+              title="Select AI Model"
+            >
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Reasoning)</option>
+            </select>
+
+            {/* Custom System Prompt Button */}
+            <button
+              className="header-action-btn"
+              title="System Instructions"
+              onClick={() => setShowSystemPromptModal(true)}
+            >
+              <Settings size={16} />
+            </button>
+
+            {isTemporaryChat && (
+              <button
+                className="header-action-btn danger"
+                title="Exit Incognito"
+                onClick={exitTemporaryChat}
+              >
+                Exit Incognito
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* Chat History Container */}
+        <div className="chat-history" ref={chatHistoryRef}>
+          {messages.length === 0 ? (
+            <div className="empty-chat-welcome">
+              <div className="welcome-logo">
+                <Sparkles size={40} color="var(--btn-primary-bg, #3b82f6)" />
+              </div>
+              <h2>How can NovaAI help you today?</h2>
+              <p>Select a suggested prompt below or type your request.</p>
+
+              <div className="suggested-prompts-grid">
+                {SUGGESTED_PROMPTS.map((card, idx) => (
+                  <div
+                    key={idx}
+                    className="suggested-prompt-card"
+                    onClick={() => handleSend(card.prompt)}
+                  >
+                    <div className="card-icon">{card.icon}</div>
+                    <div className="card-title">{card.title}</div>
+                    <div className="card-desc">{card.prompt}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="date-divider">
+                <div className="divider-line"></div>
+                <span className="divider-text">Conversation</span>
+                <div className="divider-line"></div>
+              </div>
+
+              {messages.map((msg) => (
+                <div key={msg.id} className={`message-row ${msg.role}`}>
+                  {msg.role === 'user' ? (
+                    <>
+                      <div className="message-actions-container">
+                        <button
+                          className="msg-action-btn"
+                          title="Edit message"
+                          onClick={() => {
+                            setEditingMsgId(msg.id);
+                            setEditText(msg.content);
+                          }}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          className="msg-action-btn"
+                          title="Copy message"
+                          onClick={() => handleCopyMessage(msg.content)}
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+
+                      <div className={`message-bubble user ${settings.typingAnimation ? 'animated' : ''}`}>
+                        {msg.image && (
+                          <img src={msg.image} alt="Uploaded attachment" className="message-image" />
+                        )}
+
+                        {editingMsgId === msg.id ? (
+                          <div className="inline-edit-box">
+                            <textarea
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="edit-textarea"
+                            />
+                            <div className="edit-actions">
+                              <Button size="sm" variant="ghost" onClick={() => setEditingMsgId(null)}>Cancel</Button>
+                              <Button size="sm" variant="primary" onClick={() => handleSaveEditUserMessage(msg.id)}>Submit & Resend</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
+
+                        {settings.timestamps && (
+                          <div className="message-time">
+                            {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className={`message-bubble ai markdown-body ${settings.typingAnimation ? 'animated' : ''} ${msg.isStreaming ? 'is-streaming' : ''}`}>
+                        {msg.image && (
+                          <img src={msg.image} alt="Uploaded attachment" className="message-image" />
+                        )}
+
+                        {msg.isStreaming && !msg.content ? (
+                          <div className="typing-indicator">
+                            <span>AI is thinking</span>
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                          </div>
+                        ) : /https?:\/\/image\.pollinations\.ai\//i.test(msg.content) ? (
+                          <img
+                            src={msg.content.match(/https?:\/\/image\.pollinations\.ai\/[^\s)\]"]+/i)?.[0] || msg.content.trim()}
+                            alt="AI Generated Artwork"
+                            className="message-image"
+                            style={{ marginTop: '8px', maxWidth: '100%', borderRadius: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
+                          />
+                        ) : (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code({ node, inline, className, children, ...props }) {
+                                const match = /language-(\w+)/.exec(className || '');
+                                return !inline && match ? (
+                                  <SyntaxHighlighter
+                                    style={vscDarkPlus}
+                                    language={match[1]}
+                                    PreTag="div"
+                                    {...props}
+                                  >
+                                    {String(children).replace(/\n$/, '')}
+                                  </SyntaxHighlighter>
+                                ) : (
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                );
+                              }
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        )}
+
+                        {settings.timestamps && (
+                          <div className="message-time">
+                            {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+
+                      {!msg.isStreaming && (
+                        <div className="message-actions-container">
+                          <button
+                            className="msg-action-btn"
+                            title="Regenerate response"
+                            onClick={() => regenerateMessage(activeChatId, msg.id)}
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+                          <button
+                            className="msg-action-btn"
+                            title="Continue response"
+                            onClick={() => continueResponse(activeChatId, msg.id)}
+                          >
+                            <Play size={14} />
+                          </button>
+                          <button
+                            className="msg-action-btn"
+                            title="Copy response"
+                            onClick={() => handleCopyMessage(msg.content)}
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Input Composer Area */}
         <div className="chat-input-area">
+          {/* Stop Generating Floating Action */}
+          {isStreamingAny && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={stopGenerating}
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: '#ef4444', color: '#ef4444' }}
+              >
+                <Square size={14} style={{ marginRight: '6px' }} />
+                <span>Stop Generating</span>
+              </Button>
+            </div>
+          )}
+
           {selectedImage && (
             <div className="image-preview-container">
               <div className="image-preview">
@@ -285,6 +404,7 @@ export default function ChatInterface() {
               </div>
             </div>
           )}
+
           <input
             type="file"
             accept="image/*"
@@ -296,6 +416,7 @@ export default function ChatInterface() {
               }
             }}
           />
+
           <div onKeyDown={(e) => {
             if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
               if (e.key === 'Tab') {
@@ -323,7 +444,6 @@ export default function ChatInterface() {
                     aria-label="Upload Image"
                     onClick={() => fileInputRef.current?.click()}
                   />
-                  {/* Show Mic Button based on Voice Input Setting */}
                   {settings.voiceInput && (
                     <Button
                       variant="ghost"
@@ -343,6 +463,29 @@ export default function ChatInterface() {
         </div>
       </div>
 
+      {/* System Prompt Modal */}
+      {showSystemPromptModal && (
+        <div className="modal-overlay" onClick={() => setShowSystemPromptModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Custom System Instructions</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Set custom system guidelines for NovaAI to follow in this conversation.
+            </p>
+            <textarea
+              className="system-prompt-textarea"
+              placeholder="e.g. You are a senior Python developer. Provide clean, concise code with comments."
+              value={systemPromptInput}
+              onChange={(e) => setSystemPromptInput(e.target.value)}
+              rows={5}
+            />
+            <div className="modal-actions">
+              <Button variant="ghost" onClick={() => setShowSystemPromptModal(false)}>Cancel</Button>
+              <Button variant="primary" onClick={handleSaveSystemPrompt}>Save Instructions</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toastMessage && (
         <div className="toast-message">
@@ -351,854 +494,190 @@ export default function ChatInterface() {
       )}
 
       <style>{`
-        /* Dynamic Font Size Classes */
+        .incognito-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          font-size: 0.75rem;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-weight: 500;
+        }
+
+        .model-select-dropdown {
+          background: var(--bg-input, #1e1e24);
+          color: var(--text-main, #fff);
+          border: 1px solid var(--border-color, #333);
+          border-radius: 6px;
+          padding: 6px 10px;
+          font-size: 0.85rem;
+          outline: none;
+          cursor: pointer;
+        }
+
+        .empty-chat-welcome {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          text-align: center;
+          padding: 32px;
+          color: var(--text-main);
+        }
+
+        .welcome-logo {
+          margin-bottom: 16px;
+          padding: 16px;
+          border-radius: 50%;
+          background: var(--hover-overlay, rgba(255,255,255,0.05));
+        }
+
+        .suggested-prompts-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          width: 100%;
+          max-width: 680px;
+          margin-top: 24px;
+        }
+
+        .suggested-prompt-card {
+          background: var(--bg-card, #18181b);
+          border: 1px solid var(--border-color, #27272a);
+          border-radius: 12px;
+          padding: 16px;
+          text-align: left;
+          cursor: pointer;
+          transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .suggested-prompt-card:hover {
+          transform: translateY(-2px);
+          border-color: var(--btn-primary-bg, #3b82f6);
+        }
+
+        .card-icon {
+          color: var(--btn-primary-bg, #3b82f6);
+          margin-bottom: 8px;
+        }
+
+        .card-title {
+          font-weight: 600;
+          font-size: 0.9rem;
+          margin-bottom: 4px;
+        }
+
+        .card-desc {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .inline-edit-box {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .edit-textarea {
+          width: 100%;
+          background: var(--bg-input, #27272a);
+          color: var(--text-main);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          padding: 8px;
+          font-size: 0.9rem;
+          resize: vertical;
+          min-height: 60px;
+        }
+
+        .edit-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+        }
+
+        .modal-content {
+          background: var(--bg-card, #18181b);
+          border: 1px solid var(--border-color, #27272a);
+          border-radius: 12px;
+          padding: 24px;
+          width: 90%;
+          max-width: 500px;
+          color: var(--text-main);
+        }
+
+        .system-prompt-textarea {
+          width: 100%;
+          background: var(--bg-input, #27272a);
+          color: var(--text-main);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 12px;
+          font-size: 0.9rem;
+          box-sizing: border-box;
+          margin-bottom: 16px;
+        }
+
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
         .font-size-small .message-bubble { font-size: 0.85rem !important; }
         .font-size-medium .message-bubble { font-size: 0.95rem !important; }
         .font-size-large .message-bubble { font-size: 1.1rem !important; }
 
-        .layout-container {
-          display: flex;
-          height: 100%;
-          width: 100%;
-          overflow: hidden;
-          background-color: var(--bg-app);
-        }
-
-        .chat-header-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 32px;
-          border-bottom: 1px solid var(--border-color);
-          background-color: var(--bg-app);
-          z-index: 10;
-        }
-
-        .chat-header-title {
-          font-size: 1.05rem;
-          font-weight: 600;
-          margin: 0;
-          color: var(--text-main);
-        }
-
-        .chat-header-count {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-        }
-
-        .chat-header-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .header-action-btn {
-          background: transparent;
-          border: 1px solid var(--border-color);
-          color: var(--text-muted);
-          border-radius: 6px;
-          padding: 6px 10px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background-color 0.2s, color 0.2s;
-        }
-
-        .header-action-btn:hover {
-          background-color: var(--hover-overlay);
-          color: var(--text-main);
-        }
-
-        .header-action-btn.danger:hover {
-          color: #ef4444;
-          border-color: #ef4444;
-        }
-
-        .header-export-container {
-          position: relative;
-        }
-
-        .header-export-menu {
-          position: absolute;
-          right: 0;
-          top: 110%;
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 4px;
-          z-index: 50;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          min-width: 150px;
-        }
-
-        .header-export-menu button {
-          display: block;
-          width: 100%;
-          padding: 8px 12px;
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          font-size: 0.85rem;
-          text-align: left;
-          cursor: pointer;
-          border-radius: 4px;
-        }
-
-        .header-export-menu button:hover {
-          background: var(--hover-overlay);
-        }
-
-        .animated {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        /* Sidebar Base Styles */
-        .sidebar-container {
-          width: 280px;
-          height: 100%;
-          background-color: var(--bg-card);
-          border-right: 1px solid var(--border-color);
-          display: flex;
-          flex-direction: column;
-          flex-shrink: 0;
-          transition: transform 0.3s ease;
-          z-index: 40;
-        }
-
-        .sidebar-header {
-          padding: 16px 16px 8px 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .sidebar-title {
-          font-size: 1.15rem;
-          font-weight: 600;
-          margin: 0;
-          color: var(--text-main);
-        }
-
-        .new-chat-btn {
-          width: 100% !important;
-          border-radius: 8px !important;
-          box-sizing: border-box;
-        }
-
-        .sidebar-search {
-          padding: 8px 16px 16px 16px;
-        }
-
-        .search-input-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
-        
-        .sidebar-search > .search-input-wrapper > div,
-        .sidebar-search > .search-input-wrapper > input {
-          width: 100%;
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 12px;
-          color: var(--text-muted);
-          z-index: 1;
-        }
-
-        .sidebar-search .astryx-text-input-field {
-          background-color: var(--bg-input) !important;
-          border: 1px solid var(--border-highlight) !important;
-          border-radius: 8px !important;
-          padding: 12px 16px !important;
-          font-size: 1.05rem !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          color: var(--text-main) !important;
-        }
-
-        .sidebar-scroll-area {
-          flex: 1;
-          overflow-y: auto;
-          padding: 0 16px 16px 16px;
-        }
-        
-        .sidebar-scroll-area::-webkit-scrollbar {
-          width: 6px;
-        }
-        .sidebar-scroll-area::-webkit-scrollbar-thumb {
-          background-color: var(--border-highlight);
-          border-radius: 4px;
-        }
-
-        .empty-list {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          text-align: center;
-          margin-top: 24px;
-        }
-
-        .conversation-item {
-          display: flex;
-          align-items: center;
-          padding: 10px 12px;
-          border-radius: 8px;
-          cursor: pointer;
-          gap: 12px;
-          color: var(--text-main);
-          opacity: 0.8;
-          transition: background-color 0.2s, opacity 0.2s;
-          margin-bottom: 6px;
-          position: relative;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .conversation-item:hover, .conversation-item.active {
-          background-color: var(--hover-overlay);
-          opacity: 1;
-        }
-
-        .chat-icon {
-          flex-shrink: 0;
-        }
-
-        .chat-info {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .chat-title {
-          font-size: 0.9rem;
-          font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .chat-rename-input {
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          font-size: 0.9rem;
-          font-weight: 500;
-          outline: none;
-          padding: 0;
-          width: 100%;
-        }
-
-        .chat-time {
-          font-size: 0.75rem;
-          color: var(--text-faded);
-          margin-top: 2px;
-        }
-
-        .chat-section {
-          margin-bottom: 12px;
-        }
-
-        .chat-section-title {
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          color: var(--text-faded);
-          font-weight: 600;
-          letter-spacing: 0.05em;
-          margin: 8px 12px;
-        }
-
-        .chat-actions {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .pin-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          display: flex;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-
-        .conversation-item:hover .pin-btn,
-        .pin-btn.is-pinned {
-          opacity: 1;
-        }
-
-        .pin-btn:hover {
-          background-color: var(--hover-overlay);
-          color: var(--text-main);
-        }
-
-        .pin-btn.is-pinned {
-          color: var(--btn-success-bg);
-        }
-
-        .menu-trigger {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          display: flex;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-
-        .conversation-item:hover .menu-trigger {
-          opacity: 1;
-        }
-
-        .menu-trigger:hover {
-          background-color: var(--hover-overlay);
-          color: var(--text-main);
-        }
-
-        .conversation-menu-container {
-          position: relative;
-        }
-
-        .menu-dropdown {
-          position: absolute;
-          right: 0;
-          top: 100%;
-          background-color: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 4px;
-          z-index: 50;
-          width: 140px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        }
-
-        .menu-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          width: 100%;
-          padding: 8px 12px;
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          font-size: 0.85rem;
-          cursor: pointer;
-          border-radius: 4px;
-          text-align: left;
-        }
-
-        .menu-item:hover {
-          background-color: var(--hover-overlay);
-        }
-
-        .menu-item.delete:hover {
-          color: #ef4444;
-        }
-
-        .mobile-menu-btn {
-          display: none;
-          position: absolute;
-          top: 16px;
-          left: 16px;
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          cursor: pointer;
-          z-index: 30;
-          padding: 8px;
-        }
-
-        .mobile-close-btn {
-          display: none;
-          position: absolute;
-          top: 16px;
-          right: -48px;
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          cursor: pointer;
-          padding: 8px;
-        }
-
-        .sidebar-overlay {
-          display: none;
-          position: fixed;
-          inset: 0;
-          background-color: rgba(0, 0, 0, 0.5);
-          z-index: 35;
-        }
-
-        .chat-container {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          background-color: transparent;
-          position: relative;
-          min-width: 0;
-        }
-        
-        .chat-history {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px 32px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          scroll-behavior: smooth;
-        }
-
-        @media (min-width: 769px) {
-          .chat-history {
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-          }
-          .chat-input-area {
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-          }
-        }
-
-        .date-divider {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          margin: 16px 0 24px;
-        }
-        .divider-line {
-          height: 1px;
-          flex: 0.15;
-          background-color: var(--border-highlight);
-        }
-        .divider-text {
-          font-size: 0.85rem;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        
-        .message-row {
-          display: flex;
-          width: 100%;
-          align-items: center;
-          gap: 8px;
-        }
-        .message-row.user {
-          justify-content: flex-end;
-        }
-        .message-row.ai {
-          justify-content: flex-start;
-        }
-        
-        .message-bubble {
-          line-height: 1.6;
-          max-width: 70%;
-          word-break: break-word;
-          display: flex;
-          flex-direction: column;
-        }
-        .message-bubble.ai {
-          background-color: transparent;
-          color: var(--text-main);
-          padding: 8px 0;
-        }
-        .message-bubble.user {
-          background-color: var(--bg-input);
-          color: var(--text-main);
-          border: 1px solid var(--border-color);
-          border-radius: 20px;
-          padding: 10px 16px;
-        }
-        .message-time {
-          font-size: 0.7rem;
-          color: var(--text-muted);
-          margin-top: 4px;
-          align-self: flex-end;
-          line-height: 1;
-        }
-        .message-bubble.user .message-time {
-          color: var(--text-faded);
-        }
-
-        .message-image {
-          max-width: 100%;
-          border-radius: 8px;
-          margin-bottom: 8px;
-          display: block;
-        }
-
-        .image-preview-container {
-          padding: 0 16px 12px 16px;
-          display: flex;
-        }
-
-        .image-preview {
-          position: relative;
-          display: inline-block;
-        }
-
-        .image-preview img {
-          height: 60px;
-          border-radius: 8px;
-          border: 2px solid var(--border-highlight);
-        }
-
-        .remove-image-btn {
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          background: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .markdown-body {
-          font-family: inherit;
-        }
-        .markdown-body > *:first-child {
-          margin-top: 0;
-        }
-        .markdown-body > *:last-child {
-          margin-bottom: 0;
-        }
-        .markdown-body p {
-          margin-bottom: 12px;
-        }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3, 
-        .markdown-body h4, .markdown-body h5, .markdown-body h6 {
-          margin-top: 24px;
-          margin-bottom: 16px;
-          font-weight: 600;
-          line-height: 1.25;
-        }
-        .markdown-body h1 { font-size: 1.5em; }
-        .markdown-body h2 { font-size: 1.3em; }
-        .markdown-body h3 { font-size: 1.1em; }
-        
-        .markdown-body ul, .markdown-body ol {
-          margin-top: 0;
-          margin-bottom: 16px;
-          padding-left: 2em;
-        }
-        .markdown-body li + li {
-          margin-top: 4px;
-        }
-        
-        .markdown-body blockquote {
-          margin: 0 0 16px;
-          padding: 0 1em;
-          color: var(--text-muted);
-          border-left: 0.25em solid var(--border-highlight);
-        }
-        
-        .markdown-body code {
-          padding: 0.2em 0.4em;
-          margin: 0;
-          font-size: 85%;
-          background-color: var(--bg-input);
-          border-radius: 6px;
-          font-family: monospace;
-        }
-        
-        .markdown-body pre {
-          margin-bottom: 16px;
-          border-radius: 8px;
-          overflow: auto;
-        }
-        
-        .markdown-body pre > div {
-          border-radius: 8px !important;
-          margin: 0 !important;
-        }
-        
-        .markdown-body pre code {
-          padding: 0;
-          background-color: transparent;
-          border-radius: 0;
-        }
-        
-        .markdown-body table {
-          border-collapse: collapse;
-          width: 100%;
-          margin-bottom: 16px;
-        }
-        .markdown-body th, .markdown-body td {
-          border: 1px solid var(--border-color);
-          padding: 8px 12px;
-        }
-        .markdown-body th {
-          background-color: var(--hover-overlay);
-          font-weight: 600;
-        }
-        .markdown-body hr {
-          height: 1px;
-          background-color: var(--border-color);
-          border: none;
-          margin: 24px 0;
-        }
-        .markdown-body a {
-          color: #3b82f6;
-          text-decoration: none;
-        }
-        .markdown-body a:hover {
-          text-decoration: underline;
-        }
-
-        .chat-input-area {
-          padding: 24px 32px;
-          background-color: transparent;
-        }
-        .chat-input-area [data-astryx-theme="chat-send-button"] {
-          background-color: #16A34A !important;
-          color: #ffffff !important;
-          border-radius: 50% !important;
-          transition: transform 0.2s ease, background-color 0.2s !important;
-        }
-        .chat-input-area [data-astryx-theme="chat-send-button"]:hover:not(:disabled) {
-          background-color: #15803d !important;
-          transform: scale(1.05);
-        }
-        .chat-input-area [data-astryx-theme="chat-send-button"]:disabled {
-          opacity: 0.5 !important;
-          cursor: not-allowed !important;
-          background-color: var(--border-highlight) !important;
-          color: var(--text-muted) !important;
-        }
-
-        .mic-listening {
-          background-color: #16A34A !important;
-          color: #ffffff !important;
-          border-radius: 50% !important;
-          animation: pulseMic 1.5s infinite;
-        }
-
-        @keyframes pulseMic {
-          0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
-          70% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message-actions-container {
-          position: relative;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-        .message-row:hover .message-actions-container,
-        .message-actions-container.active {
-          opacity: 1;
-        }
-        .msg-menu-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .msg-menu-btn:hover {
-          background: var(--hover-overlay);
-          color: var(--text-main);
-        }
-        .msg-dropdown {
-          position: absolute;
-          top: 100%;
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 4px;
-          z-index: 50;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-          min-width: 140px;
-        }
-        .message-row.user .msg-dropdown {
-          right: 0;
-        }
-        .message-row.ai .msg-dropdown {
-          left: 0;
-        }
-        .msg-dropdown-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          width: 100%;
-          padding: 8px 12px;
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          font-size: 0.85rem;
-          cursor: pointer;
-          border-radius: 4px;
-          text-align: left;
-        }
-        .msg-dropdown-item:hover {
-          background: var(--hover-overlay);
-        }
-        .msg-dropdown-item.delete {
-          color: #ef4444;
-        }
-        .msg-dropdown-item.delete:hover {
-          background: rgba(239, 68, 68, 0.1);
-        }
-
-        /* Modal Overlay */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 100;
-          animation: fadeIn 0.2s ease-out;
-        }
-        .modal-content {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 24px;
-          width: 90%;
-          max-width: 400px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-        .modal-content h3 {
-          margin: 0 0 12px 0;
-          color: var(--text-main);
-          font-size: 1.2rem;
-        }
-        .modal-content p {
-          margin: 0 0 24px 0;
-          color: var(--text-muted);
-          font-size: 0.95rem;
-          line-height: 1.5;
-        }
-        .modal-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-        .btn-cancel {
-          background: transparent;
-          border: 1px solid var(--border-color);
-          color: var(--text-main);
-          padding: 8px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 500;
-        }
-        .btn-cancel:hover {
-          background: var(--hover-overlay);
-        }
-        .btn-danger {
-          background: #ef4444;
-          border: none;
-          color: white;
-          padding: 8px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 500;
-        }
-        .btn-danger:hover {
-          background: #dc2626;
-        }
-
-        /* Toast */
-        .toast-message {
-          position: fixed;
-          bottom: 24px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #10b981;
-          color: white;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-weight: 500;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          z-index: 100;
-          animation: slideUpFade 0.3s ease-out;
-        }
-        @keyframes slideUpFade {
-          from { opacity: 0; transform: translate(-50%, 20px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
-        }
-
-        /* Typing Indicator Animation */
-        .typing-indicator {
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          color: var(--text-muted);
-          font-style: italic;
-          padding: 4px 0;
-        }
-        .typing-indicator .dot {
-          animation: blink 1.4s infinite fill-mode;
-          font-weight: bold;
-        }
+        .layout-container { display: flex; height: 100%; width: 100%; overflow: hidden; background-color: var(--bg-app); }
+        .chat-header-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 32px; border-bottom: 1px solid var(--border-color); background-color: var(--bg-app); z-index: 10; }
+        .chat-header-title { font-size: 1.05rem; font-weight: 600; margin: 0; color: var(--text-main); }
+        .chat-header-actions { display: flex; align-items: center; gap: 8px; }
+        .header-action-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .header-action-btn:hover { background-color: var(--hover-overlay); color: var(--text-main); }
+        .header-action-btn.danger:hover { color: #ef4444; border-color: #ef4444; }
+        .sidebar-container { width: 280px; height: 100%; background-color: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; z-index: 40; }
+        .sidebar-header { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .sidebar-title { font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--text-main); }
+        .new-chat-btn { width: 100% !important; border-radius: 8px !important; }
+        .sidebar-scroll-area { flex: 1; overflow-y: auto; padding: 0 16px 16px 16px; }
+        .chat-container { flex: 1; display: flex; flex-direction: column; background-color: transparent; position: relative; min-width: 0; }
+        .chat-history { flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        @media (min-width: 769px) { .chat-history { max-width: 800px; margin: 0 auto; width: 100%; } .chat-input-area { max-width: 800px; margin: 0 auto; width: 100%; } }
+        .date-divider { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0 24px; }
+        .divider-line { height: 1px; flex: 0.15; background-color: var(--border-highlight); }
+        .divider-text { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        .message-row { display: flex; width: 100%; align-items: flex-start; gap: 8px; }
+        .message-row.user { justify-content: flex-end; }
+        .message-row.ai { justify-content: flex-start; }
+        .message-bubble { line-height: 1.6; max-width: 70%; word-break: break-word; padding: 12px 16px; border-radius: 12px; }
+        .message-bubble.user { background: var(--btn-primary-bg, #3b82f6); color: #fff; border-bottom-right-radius: 2px; }
+        .message-bubble.ai { background: var(--bg-card, #18181b); color: var(--text-main); border-bottom-left-radius: 2px; border: 1px solid var(--border-color); }
+        .message-actions-container { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s; margin-top: 4px; }
+        .message-row:hover .message-actions-container { opacity: 1; }
+        .msg-action-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; }
+        .msg-action-btn:hover { background-color: var(--hover-overlay); color: var(--text-main); }
+        .typing-indicator { display: flex; align-items: center; gap: 2px; color: var(--text-muted); font-style: italic; padding: 4px 0; }
+        .typing-indicator .dot { animation: blink 1.4s infinite fill-mode; font-weight: bold; }
         .typing-indicator .dot:nth-child(2) { animation-delay: .2s; }
         .typing-indicator .dot:nth-child(3) { animation-delay: .4s; }
         .typing-indicator .dot:nth-child(4) { animation-delay: .6s; }
-
-        @keyframes blink {
-          0% { opacity: .2; }
-          20% { opacity: 1; }
-          100% { opacity: .2; }
-        }
-
-        .message-bubble.is-streaming {
-          border-left: 3px solid var(--btn-primary-bg, #3b82f6);
-        }
-
-        /* Mobile/Tablet Responsiveness */
-        @media (max-width: 768px) {
-          .sidebar-container {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            transform: translateX(-100%);
-          }
-          .sidebar-container.open {
-            transform: translateX(0);
-          }
-          .mobile-menu-btn {
-            display: block;
-          }
-          .mobile-close-btn {
-            display: block;
-          }
-          .sidebar-overlay {
-            display: block;
-          }
-          .chat-history {
-            padding-top: 64px;
-          }
-        }
+        @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
+        .message-bubble.is-streaming { border-left: 3px solid var(--btn-primary-bg, #3b82f6); }
+        .toast-message { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 500; z-index: 100; }
       `}</style>
     </div>
   );

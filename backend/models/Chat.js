@@ -14,6 +14,18 @@ const chatSchema = new mongoose.Schema({
     isPinned: {
         type: Boolean,
         default: false
+    },
+    model: {
+        type: String,
+        default: "gemini-2.5-flash"
+    },
+    systemInstruction: {
+        type: String,
+        default: ""
+    },
+    folder: {
+        type: String,
+        default: "General"
     }
 }, { timestamps: true });
 

@@ -9,7 +9,7 @@ const DEFAULT_MODELS = [
   'gemini-1.5-pro'
 ].filter(Boolean);
 
-const SYSTEM_INSTRUCTION = "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt} (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image.";
+const BASE_SYSTEM_INSTRUCTION = "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt} (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image.";
 
 /**
  * Exponential Backoff Retry Helper
@@ -33,15 +33,11 @@ async function retryWithBackoff(fn, retries = 3, delay = 1000) {
 }
 
 /**
- * Helper to count approximate tokens or limit history window
- * @param {Array} history 
- * @param {number} maxTurns - Maximum number of message turns to include in context
+ * Helper to limit history window
  */
 function prepareContextHistory(history, maxTurns = 20) {
   if (!history || history.length === 0) return [];
-  // Keep only the most recent maxTurns messages to prevent context overflow
-  const truncatedHistory = history.slice(-maxTurns);
-  return truncatedHistory;
+  return history.slice(-maxTurns);
 }
 
 /**
@@ -73,13 +69,17 @@ export function formatAIError(error) {
  * @param {Array} params.formattedHistory - History formatted for Gemini chat
  * @param {Array} params.currentMessageParts - Parts array for the current prompt (text + optional image)
  * @param {Function} params.onChunk - Callback invoked with each text delta
- * @param {number} params.timeoutMs - Request timeout limit in milliseconds (default 60000ms)
+ * @param {string} params.requestedModel - Specific model requested by user/chat
+ * @param {string} params.customSystemInstruction - Custom system prompt override
+ * @param {number} params.timeoutMs - Request timeout limit in milliseconds
  * @returns {Promise<Object>} Returns { fullText, usage: { promptTokens, candidateTokens, totalTokens, model } }
  */
 export async function streamChatResponse({
   formattedHistory = [],
   currentMessageParts = [],
   onChunk = () => {},
+  requestedModel = null,
+  customSystemInstruction = null,
   timeoutMs = 60000
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -90,19 +90,28 @@ export async function streamChatResponse({
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const sanitizedHistory = prepareContextHistory(formattedHistory);
 
+  // Combine system instruction if custom instruction provided
+  const effectiveSystemInstruction = customSystemInstruction && customSystemInstruction.trim()
+    ? `${customSystemInstruction.trim()}\n\n${BASE_SYSTEM_INSTRUCTION}`
+    : BASE_SYSTEM_INSTRUCTION;
+
+  // Build model priority list starting with requestedModel if provided
+  const modelsToTry = [
+    requestedModel,
+    ...DEFAULT_MODELS
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
   let lastError = null;
 
-  // Try available models sequentially if any model is deprecated / returns 404
-  for (const modelName of DEFAULT_MODELS) {
+  for (const modelName of modelsToTry) {
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: SYSTEM_INSTRUCTION
+        systemInstruction: effectiveSystemInstruction
       });
 
       const chatSession = model.startChat({ history: sanitizedHistory });
 
-      // Create timeout promise
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -124,7 +133,6 @@ export async function streamChatResponse({
         }
       }
 
-      // Retrieve token usage metadata if available from final response
       let promptTokens = 0;
       let candidateTokens = 0;
       let totalTokens = 0;
@@ -137,7 +145,6 @@ export async function streamChatResponse({
           totalTokens = responseMeta.usageMetadata.totalTokenCount || (promptTokens + candidateTokens);
         }
       } catch (usageErr) {
-        // Estimate token counts if metadata not returned by API
         promptTokens = Math.ceil((JSON.stringify(sanitizedHistory).length + JSON.stringify(currentMessageParts).length) / 4);
         candidateTokens = Math.ceil(fullText.length / 4);
         totalTokens = promptTokens + candidateTokens;
@@ -156,7 +163,6 @@ export async function streamChatResponse({
     } catch (err) {
       console.warn(`[AI Service] Model '${modelName}' encountered error:`, err.message);
       lastError = err;
-      // If error is a 404 model not found, loop to fallback model. Otherwise fail fast.
       if (!err.message?.includes("404") && !err.message?.includes("not found")) {
         throw err;
       }

@@ -10,7 +10,9 @@ const DEFAULT_SETTINGS = {
     autoScroll: true,
     typingAnimation: true,
     sound: true,
-    notifications: false
+    notifications: false,
+    defaultModel: 'gemini-2.5-flash',
+    defaultSystemPrompt: ''
 };
 
 export const SettingsProvider = ({ children }) => {
@@ -22,6 +24,7 @@ export const SettingsProvider = ({ children }) => {
             return DEFAULT_SETTINGS;
         }
     });
+
     useEffect(() => {
         try {
             localStorage.setItem('novaai_settings', JSON.stringify(settings));
@@ -29,15 +32,18 @@ export const SettingsProvider = ({ children }) => {
             console.error("Failed to save settings to localStorage:", e);
         }
     }, [settings]);
+
     const updateSetting = (key, value) => {
         setSettings(prev => ({
             ...prev,
             [key]: value
         }));
     };
+
     const resetSettings = () => {
         setSettings(DEFAULT_SETTINGS);
     };
+
     return (
         <SettingsContext.Provider value={{ settings, updateSetting, resetSettings }}>
             {children}

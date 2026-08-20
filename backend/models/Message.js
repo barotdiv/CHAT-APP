@@ -19,6 +19,19 @@ const messageSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    parentMessageId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Message",
+        default: null
+    },
+    version: {
+        type: Number,
+        default: 1
+    },
+    isContinued: {
+        type: Boolean,
+        default: false
+    },
     usage: {
         promptTokens: { type: Number, default: 0 },
         candidateTokens: { type: Number, default: 0 },
