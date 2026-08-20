@@ -649,11 +649,31 @@ export default function ChatInterface() {
         .header-action-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .header-action-btn:hover { background-color: var(--hover-overlay); color: var(--text-main); }
         .header-action-btn.danger:hover { color: #ef4444; border-color: #ef4444; }
-        .sidebar-container { width: 280px; height: 100%; background-color: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; z-index: 40; }
-        .sidebar-header { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .sidebar-container { width: 280px; height: 100%; background-color: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; z-index: 40; box-sizing: border-box; }
+        .sidebar-header { padding: 16px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; }
         .sidebar-title { font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--text-main); }
         .new-chat-btn { width: 100% !important; border-radius: 8px !important; }
-        .sidebar-scroll-area { flex: 1; overflow-y: auto; padding: 0 16px 16px 16px; }
+        .sidebar-header > div { width: 100%; }
+        .sidebar-header button { box-sizing: border-box; min-height: 40px; }
+        .sidebar-search { padding: 0 16px 16px; box-sizing: border-box; }
+        .search-input-wrapper, .search-input { width: 100%; box-sizing: border-box; }
+        .sidebar-scroll-area { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; padding: 0 16px 16px; box-sizing: border-box; }
+        .conversation-list, .chat-section { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .chat-section + .chat-section { margin-top: 16px; }
+        .chat-section-title { padding: 0 8px 6px; color: var(--text-faded); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+        .conversation-item { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 10px 8px; box-sizing: border-box; border: 1px solid transparent; border-radius: 8px; color: var(--text-main); cursor: pointer; }
+        .conversation-item:hover, .conversation-item.active { background-color: var(--hover-overlay); border-color: var(--border-color); }
+        .chat-icon { flex: 0 0 auto; color: var(--text-muted); }
+        .chat-info { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+        .chat-title, .chat-time { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chat-title { font-size: 0.88rem; }
+        .chat-time { margin-top: 3px; color: var(--text-faded); font-size: 0.72rem; }
+        .chat-actions { display: flex; align-items: center; flex: 0 0 auto; gap: 2px; }
+        .pin-btn { display: flex; align-items: center; justify-content: center; padding: 4px; border: 0; border-radius: 4px; background: transparent; color: var(--text-faded); cursor: pointer; }
+        .pin-btn:hover, .pin-btn.is-pinned { color: var(--text-main); background-color: var(--hover-overlay); }
+        .chat-rename-input { width: 100%; min-width: 0; box-sizing: border-box; }
+        .empty-list { padding: 20px 8px; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+        .mobile-menu-btn, .mobile-close-btn, .sidebar-overlay { display: none; }
         .chat-container { flex: 1; display: flex; flex-direction: column; background-color: transparent; position: relative; min-width: 0; }
         .chat-history { flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
         @media (min-width: 769px) { .chat-history { max-width: 800px; margin: 0 auto; width: 100%; } .chat-input-area { max-width: 800px; margin: 0 auto; width: 100%; } }
