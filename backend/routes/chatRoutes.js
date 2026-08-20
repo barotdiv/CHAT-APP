@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from "multer";
 import { protect } from '../middleware/authMiddleware.js';
+import { aiRateLimiter } from '../middleware/rateLimiter.js';
 import {
     getChats,
     createChat,
@@ -9,6 +10,7 @@ import {
     duplicateChat,
     getMessages,
     addMessage,
+    streamMessage,
     deleteMessage
 } from '../controllers/chatController.js';
 
@@ -26,6 +28,7 @@ router.route('/:id').put(updateChat).delete(deleteChat);
 router.route('/:id/duplicate').post(duplicateChat);
 
 router.route('/:id/messages').get(getMessages).post(upload.single('image'), addMessage);
+router.route('/:id/messages/stream').post(aiRateLimiter({ windowMs: 60 * 1000, maxRequests: 20 }), upload.single('image'), streamMessage);
 router.route('/:id/messages/:messageId').delete(deleteMessage);
 
 export default router;

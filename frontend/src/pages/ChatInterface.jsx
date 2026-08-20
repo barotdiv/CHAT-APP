@@ -202,7 +202,7 @@ export default function ChatInterface() {
                 </>
               ) : (
                 <>
-                  <div className={`message-bubble ai markdown-body ${settings.typingAnimation ? 'animated' : ''}`}>
+                  <div className={`message-bubble ai markdown-body ${settings.typingAnimation ? 'animated' : ''} ${msg.isStreaming ? 'is-streaming' : ''}`}>
                     {msg.image && (
                       <img
                         src={msg.image}
@@ -210,7 +210,14 @@ export default function ChatInterface() {
                         className="message-image"
                       />
                     )}
-                    {/https?:\/\/image\.pollinations\.ai\//i.test(msg.content) ? (
+                    {msg.isStreaming && !msg.content ? (
+                      <div className="typing-indicator">
+                        <span>AI is thinking</span>
+                        <span className="dot">.</span>
+                        <span className="dot">.</span>
+                        <span className="dot">.</span>
+                      </div>
+                    ) : /https?:\/\/image\.pollinations\.ai\//i.test(msg.content) ? (
                       <img 
                         src={msg.content.match(/https?:\/\/image\.pollinations\.ai\/[^\s)\]"]+/i)?.[0] || msg.content.trim()} 
                         alt="AI Generated Artwork" 
@@ -1138,6 +1145,33 @@ export default function ChatInterface() {
         @keyframes slideUpFade {
           from { opacity: 0; transform: translate(-50%, 20px); }
           to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        /* Typing Indicator Animation */
+        .typing-indicator {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          color: var(--text-muted);
+          font-style: italic;
+          padding: 4px 0;
+        }
+        .typing-indicator .dot {
+          animation: blink 1.4s infinite fill-mode;
+          font-weight: bold;
+        }
+        .typing-indicator .dot:nth-child(2) { animation-delay: .2s; }
+        .typing-indicator .dot:nth-child(3) { animation-delay: .4s; }
+        .typing-indicator .dot:nth-child(4) { animation-delay: .6s; }
+
+        @keyframes blink {
+          0% { opacity: .2; }
+          20% { opacity: 1; }
+          100% { opacity: .2; }
+        }
+
+        .message-bubble.is-streaming {
+          border-left: 3px solid var(--btn-primary-bg, #3b82f6);
         }
 
         /* Mobile/Tablet Responsiveness */

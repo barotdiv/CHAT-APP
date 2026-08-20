@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
+import { streamChatResponse, formatAIError } from "../services/aiService.js";
 
 export const getChats = async (req, res) => {
     try {
@@ -66,7 +66,8 @@ export const duplicateChat = async (req, res) => {
                 chatId: newChat._id,
                 role: msg.role,
                 content: msg.content,
-                image: msg.image
+                image: msg.image,
+                usage: msg.usage
             }));
             await Message.insertMany(newMessages);
         }
@@ -101,48 +102,54 @@ export const deleteMessage = async (req, res) => {
     }
 };
 
-export const addMessage = async (req, res) => {
+/**
+ * Stream message controller using Server-Sent Events (SSE)
+ */
+export const streamMessage = async (req, res) => {
+    // 1. Set SSE Headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    const sendEvent = (event, data) => {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
     try {
         const { content } = req.body;
-
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
-        if (!chat) return res.status(404).json({ message: 'Chat not found' });
+        if (!chat) {
+            sendEvent('error', { message: 'Chat not found' });
+            return res.end();
+        }
 
-        // 1. Fetch previous messages
+        // 2. Fetch previous messages
         const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
 
-        // 2. Format history for Gemini
+        // 3. Format history for Gemini
         const formattedHistory = previousMessages.map(msg => {
             const parts = [{ text: msg.content || '' }];
-
-            // If a past message had an image, attach it so the AI remembers it
             if (msg.image) {
                 const [meta, base64Data] = msg.image.split(',');
-                const mimeType = meta.split(':')[1].split(';')[0];
-
+                const mimeType = meta ? meta.split(':')[1]?.split(';')[0] : 'image/png';
                 parts.push({
-                    inlineData: { data: base64Data, mimeType: mimeType }
+                    inlineData: { data: base64Data, mimeType: mimeType || 'image/png' }
                 });
             }
-
             return {
                 role: msg.role === 'user' ? 'user' : 'model',
                 parts: parts
             };
         });
 
-        // 3. Process the NEW uploaded image (if the user attached one)
+        // 4. Process current message uploaded image (if any)
         let imageBase64DataUrl = null;
-        let currentMessageParts = [{ text: content || '' }]; // What we will send to Gemini
+        let currentMessageParts = [{ text: content || '' }];
 
         if (req.file) {
-            // Convert the uploaded memory buffer into a Base64 string
             const base64String = req.file.buffer.toString('base64');
-
-            // Format it as a Data URL so we can easily display it in React later
             imageBase64DataUrl = `data:${req.file.mimetype};base64,${base64String}`;
-
-            // Add the image part for Gemini to analyze
             currentMessageParts.push({
                 inlineData: {
                     data: base64String,
@@ -151,56 +158,113 @@ export const addMessage = async (req, res) => {
             });
         }
 
-        // 4. Save the new User message to the database (including the image Data URL)
+        // 5. Save user message to database
         const userMessage = await Message.create({
             chatId: req.params.id,
             role: 'user',
-            content,
-            image: imageBase64DataUrl // This will be null if no image was uploaded
+            content: content || '',
+            image: imageBase64DataUrl
         });
 
-        // 5. Initialize Gemini
-        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === '') {
-            return res.status(401).json({
-                message: "Invalid or missing GEMINI_API_KEY in backend/.env. Please get a free API key from https://aistudio.google.com/app/apikey and put it in backend/.env"
-            });
-        }
+        // Emit user_message event to client
+        sendEvent('user_message', { userMessage });
 
-        const genAI = new GoogleGenerativeAI(process.process?.env?.GEMINI_API_KEY || process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-3.5-flash",
-            systemInstruction: "You are a helpful AI assistant. If the user asks you to generate, draw, create, or show an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt}?model=flux&width=1024&height=1024&nologo=true (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax, code blocks, or extra text in your reply when generating an image."
+        // 6. Stream response from Gemini via aiService
+        const { fullText, usage } = await streamChatResponse({
+            formattedHistory,
+            currentMessageParts,
+            onChunk: (chunkText) => {
+                sendEvent('delta', { delta: chunkText });
+            }
         });
 
-        // 6. Start the chat session
-        const chatSession = model.startChat({ history: formattedHistory });
-
-        // 7. Send the new message (text + optional image) to the AI
-        const result = await chatSession.sendMessage(currentMessageParts);
-        let aiReplyText = result.response.text();
-
-        // Clean & format image URL if present
-        const pollinationsMatch = aiReplyText.match(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]]+/i);
-        if (pollinationsMatch) {
-            let imageUrl = pollinationsMatch[0];
-            if (!imageUrl.includes('model=flux')) {
-                const joiner = imageUrl.includes('?') ? '&' : '?';
-                imageUrl += `${joiner}model=flux&width=1024&height=1024&nologo=true`;
-            }
-            if (!imageUrl.includes('seed=')) {
-                imageUrl += `&seed=${Math.floor(Math.random() * 1000000)}`;
-            }
-            aiReplyText = imageUrl;
-        }
-
-        // 8. Save AI reply
+        // 7. Save AI reply to database
         const aiMessage = await Message.create({
             chatId: req.params.id,
             role: 'ai',
-            content: aiReplyText
+            content: fullText,
+            usage
         });
 
-        // Update chat title if it's still 'New Chat'
+        // Update chat title if it's 'New Chat'
+        if (chat.title === 'New Chat') {
+            chat.title = content ? (content.length > 30 ? content.substring(0, 30) + '...' : content) : 'Image Upload';
+        }
+        chat.updatedAt = Date.now();
+        await chat.save();
+
+        // Emit done event to client
+        sendEvent('done', { aiMessage, chatTitle: chat.title });
+        res.end();
+
+    } catch (error) {
+        console.error("Streaming Error:", error);
+        const formattedErr = formatAIError(error);
+        sendEvent('error', { message: formattedErr });
+        res.end();
+    }
+};
+
+/**
+ * Non-streaming addMessage fallback (updated to use aiService)
+ */
+export const addMessage = async (req, res) => {
+    try {
+        const { content } = req.body;
+
+        const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+        if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+        const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
+
+        const formattedHistory = previousMessages.map(msg => {
+            const parts = [{ text: msg.content || '' }];
+            if (msg.image) {
+                const [meta, base64Data] = msg.image.split(',');
+                const mimeType = meta ? meta.split(':')[1]?.split(';')[0] : 'image/png';
+                parts.push({
+                    inlineData: { data: base64Data, mimeType: mimeType || 'image/png' }
+                });
+            }
+            return {
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: parts
+            };
+        });
+
+        let imageBase64DataUrl = null;
+        let currentMessageParts = [{ text: content || '' }];
+
+        if (req.file) {
+            const base64String = req.file.buffer.toString('base64');
+            imageBase64DataUrl = `data:${req.file.mimetype};base64,${base64String}`;
+            currentMessageParts.push({
+                inlineData: {
+                    data: base64String,
+                    mimeType: req.file.mimetype
+                }
+            });
+        }
+
+        const userMessage = await Message.create({
+            chatId: req.params.id,
+            role: 'user',
+            content: content || '',
+            image: imageBase64DataUrl
+        });
+
+        const { fullText, usage } = await streamChatResponse({
+            formattedHistory,
+            currentMessageParts
+        });
+
+        const aiMessage = await Message.create({
+            chatId: req.params.id,
+            role: 'ai',
+            content: fullText,
+            usage
+        });
+
         if (chat.title === 'New Chat') {
             chat.title = content ? (content.length > 30 ? content.substring(0, 30) + '...' : content) : 'Image Upload';
         }
@@ -211,10 +275,6 @@ export const addMessage = async (req, res) => {
         res.status(201).json({ userMessage, aiMessage, chatTitle: chat.title });
     } catch (error) {
         console.error("AI Error:", error);
-        let errorMsg = error.message;
-        if (errorMsg && (errorMsg.includes("401") || errorMsg.includes("API key not valid"))) {
-            errorMsg = "Gemini API 401 Unauthorized: Invalid API Key. Please get a valid key from https://aistudio.google.com/app/apikey and set GEMINI_API_KEY in backend/.env";
-        }
-        res.status(500).json({ message: errorMsg });
+        res.status(500).json({ message: formatAIError(error) });
     }
 };

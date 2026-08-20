@@ -18,6 +18,12 @@ const messageSchema = new mongoose.Schema({
     image: {
         type: String,
         required: false
+    },
+    usage: {
+        promptTokens: { type: Number, default: 0 },
+        candidateTokens: { type: Number, default: 0 },
+        totalTokens: { type: Number, default: 0 },
+        model: { type: String, default: "" }
     }
 }, { timestamps: true });
 

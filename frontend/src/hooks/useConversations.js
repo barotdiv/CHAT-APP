@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Helper function to easily grab our token and format the headers for every request
+// Helper function to easily grab token and format headers
 const getHeaders = () => {
   const token = localStorage.getItem('chatAppToken');
   return {
@@ -20,7 +20,6 @@ export const useConversations = () => {
         const res = await fetch('/api/chats', { headers: getHeaders() });
         if (res.ok) {
           const data = await res.json();
-          // We add an empty 'messages' array to each chat locally so the UI doesn't crash before messages load
           const formattedChats = data.map(chat => ({ ...chat, id: chat._id, messages: [] }));
           setChats(formattedChats);
 
@@ -33,9 +32,9 @@ export const useConversations = () => {
       }
     };
     fetchChats();
-  }, []); // Only runs once when the app opens
+  }, []);
 
-  // 2. Fetch messages whenever the user clicks on a different chat
+  // 2. Fetch messages whenever activeChatId changes
   useEffect(() => {
     if (!activeChatId) return;
 
@@ -44,8 +43,6 @@ export const useConversations = () => {
         const res = await fetch(`/api/chats/${activeChatId}/messages`, { headers: getHeaders() });
         if (res.ok) {
           const data = await res.json();
-
-          // Update the specific chat in our local state to contain these downloaded messages
           setChats(prev => prev.map(c => {
             if (c.id === activeChatId) {
               return { ...c, messages: data.map(m => ({ ...m, id: m._id })) };
@@ -58,7 +55,7 @@ export const useConversations = () => {
       }
     };
     fetchMessages();
-  }, [activeChatId]); // Runs every time activeChatId changes
+  }, [activeChatId]);
 
   // 3. Create a New Chat
   const createNewChat = async () => {
@@ -190,7 +187,7 @@ export const useConversations = () => {
           <head>
             <title>${title} - NovaAI Export</title>
             <style>
-              body { font-family: system-ui, sans-serif; padding: 30px, line-through: 1.6; color: #111; }
+              body { font-family: system-ui, sans-serif; padding: 30px; line-height: 1.6; color: #111; }
               h1 { border-bottom: 2px solid #ccc; padding-bottom: 8px; }
               .msg { margin-bottom: 20px; padding: 12px; border-radius: 8px; background: #f4f4f5; }
               .msg.user { background: #e0f2fe; }
@@ -199,7 +196,7 @@ export const useConversations = () => {
           </head>
           <body>
             <h1>${title}</h1>
-            ${chat.message.map(m => `
+            ${chat.messages.map(m => `
               <div class="msg ${m.role}">
                 <div class="meta">${m.role === 'user' ? 'User' : 'NovaAI'} (${new Date(m.createdAt || Date.now()).toLocaleString()})</div>
                 <div>${m.content}</div>
@@ -223,6 +220,9 @@ export const useConversations = () => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Add message with Server-Sent Events (SSE) progressive streaming
+   */
   const addMessage = async (chatId, role, content, imageFile = null) => {
     if (role === 'ai') return;
 
@@ -244,108 +244,193 @@ export const useConversations = () => {
       }
     }
 
-    // Optimistically update the UI so it feels fast
-    const tempId = Date.now().toString();
+    const tempUserMsgId = `user_${Date.now()}`;
+    const tempAiMsgId = `ai_${Date.now()}`;
+    const localImageUrl = imageFile ? URL.createObjectURL(imageFile) : null;
 
-    // If we have an image, we can optionally create a local preview URL for the UI!
-    let localImageUrl = null;
-    if (imageFile) {
-      localImageUrl = URL.createObjectURL(imageFile);
-    }
+    const tempUserMessage = {
+      id: tempUserMsgId,
+      role: 'user',
+      content,
+      image: localImageUrl,
+      createdAt: new Date().toISOString()
+    };
 
-    const tempMessage = { id: tempId, role: 'user', content, image: localImageUrl, createdAt: new Date().toISOString() };
+    const tempAiMessage = {
+      id: tempAiMsgId,
+      role: 'ai',
+      content: '',
+      isStreaming: true,
+      createdAt: new Date().toISOString()
+    };
 
+    // Optimistically insert User message + Streaming AI placeholder into UI state
     setChats(prev => {
       const exists = prev.some(c => c.id === targetChatId);
       if (exists) {
-        return prev.map(c => c.id === targetChatId ? { ...c, messages: [...c.messages, tempMessage] } : c);
+        return prev.map(c => c.id === targetChatId ? {
+          ...c,
+          messages: [...c.messages, tempUserMessage, tempAiMessage]
+        } : c);
       } else if (createdChatObj) {
-        return [{ ...createdChatObj, messages: [tempMessage] }, ...prev];
+        return [{ ...createdChatObj, messages: [tempUserMessage, tempAiMessage] }, ...prev];
       }
       return prev;
     });
 
     try {
       let bodyData;
-      // We start with JUST our Authorization token
       let fetchHeaders = { 'Authorization': `Bearer ${localStorage.getItem('chatAppToken')}` };
 
-      // Did the user attach an image?
       if (imageFile) {
-        // Yes! Create a FormData envelope
         bodyData = new FormData();
-        bodyData.append('content', content);
-        bodyData.append('image', imageFile); // 'image' MUST match the name in upload.single('image')
-        // CRITICAL: We DO NOT set the Content-Type header here. The browser does it for us automatically!
+        bodyData.append('content', content || '');
+        bodyData.append('image', imageFile);
       } else {
-        bodyData = JSON.stringify({ content });
+        bodyData = JSON.stringify({ content: content || '' });
         fetchHeaders['Content-Type'] = 'application/json';
       }
 
-      // Send the request using our dynamic headers and body
-      const res = await fetch(`/api/chats/${targetChatId}/messages`, {
+      const res = await fetch(`/api/chats/${targetChatId}/messages/stream`, {
         method: 'POST',
         headers: fetchHeaders,
         body: bodyData
       });
 
-      if (res.ok) {
-        const { userMessage, aiMessage, chatTitle } = await res.json();
+      if (!res.ok) {
+        let errMessage = "Failed to communicate with AI stream.";
+        try {
+          const errData = await res.json();
+          errMessage = errData.message || errMessage;
+        } catch (_) {}
 
-        setChats(prev => {
-          const exists = prev.some(c => c.id === targetChatId);
-          if (exists) {
-            return prev.map(c => {
-              if (c.id === targetChatId) {
-                const filtered = c.messages.filter(m =>
-                  m.id !== tempId &&
-                  m.id !== userMessage._id &&
-                  m.id !== aiMessage._id
-                );
-                return {
-                  ...c,
-                  title: chatTitle || c.title,
-                  messages: [
-                    ...filtered,
-                    { ...userMessage, id: userMessage._id },
-                    { ...aiMessage, id: aiMessage._id }
-                  ]
-                };
-              }
-              return c;
-            });
-          } else {
-            return [{
-              id: targetChatId,
-              _id: targetChatId,
-              title: chatTitle || 'New Chat',
-              messages: [
-                { ...userMessage, id: userMessage._id },
-                { ...aiMessage, id: aiMessage._id }
-              ]
-            }, ...prev];
-          }
-        });
-      } else {
-        const errorData = await res.json();
-        console.error("Backend Error:", errorData?.message);
-        const errorMessageText = `⚠️ Backend Error: ${errorData?.message || 'Failed to get response'}`;
         setChats(prev => prev.map(c => {
           if (c.id === targetChatId) {
             return {
               ...c,
-              messages: [
-                ...c.messages.filter(m => m.id !== tempId),
-                { id: tempId, role: 'user', content, image: localImageUrl, createdAt: new Date().toISOString() },
-                { id: Date.now().toString(), role: 'ai', content: errorMessageText }
-              ]
+              messages: c.messages.map(m => m.id === tempAiMsgId ? {
+                ...m,
+                content: `⚠️ Error: ${errMessage}`,
+                isStreaming: false
+              } : m)
             };
           }
           return c;
         }));
+        return;
       }
+
+      // Stream Reader setup
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process SSE lines
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop(); // Keep last incomplete chunk in buffer
+
+        for (const block of lines) {
+          if (!block.trim()) continue;
+
+          let eventName = "message";
+          let eventDataRaw = "";
+
+          const blockLines = block.split("\n");
+          for (const line of blockLines) {
+            if (line.startsWith("event: ")) {
+              eventName = line.substring(7).trim();
+            } else if (line.startsWith("data: ")) {
+              eventDataRaw = line.substring(6).trim();
+            }
+          }
+
+          if (!eventDataRaw) continue;
+
+          try {
+            const data = JSON.parse(eventDataRaw);
+
+            if (eventName === 'user_message') {
+              const realUserMsg = data.userMessage;
+              setChats(prev => prev.map(c => c.id === targetChatId ? {
+                ...c,
+                messages: c.messages.map(m => m.id === tempUserMsgId ? { ...realUserMsg, id: realUserMsg._id } : m)
+              } : c));
+
+            } else if (eventName === 'delta') {
+              const deltaText = data.delta || '';
+              setChats(prev => prev.map(c => {
+                if (c.id === targetChatId) {
+                  return {
+                    ...c,
+                    messages: c.messages.map(m => m.id === tempAiMsgId ? {
+                      ...m,
+                      content: m.content + deltaText
+                    } : m)
+                  };
+                }
+                return c;
+              }));
+
+            } else if (eventName === 'done') {
+              const { aiMessage, chatTitle } = data;
+              setChats(prev => prev.map(c => {
+                if (c.id === targetChatId) {
+                  return {
+                    ...c,
+                    title: chatTitle || c.title,
+                    messages: c.messages.map(m => m.id === tempAiMsgId ? {
+                      ...aiMessage,
+                      id: aiMessage._id,
+                      isStreaming: false
+                    } : m)
+                  };
+                }
+                return c;
+              }));
+
+            } else if (eventName === 'error') {
+              const errMsg = data.message || 'An error occurred during AI generation.';
+              setChats(prev => prev.map(c => {
+                if (c.id === targetChatId) {
+                  return {
+                    ...c,
+                    messages: c.messages.map(m => m.id === tempAiMsgId ? {
+                      ...m,
+                      content: `⚠️ ${errMsg}`,
+                      isStreaming: false
+                    } : m)
+                  };
+                }
+                return c;
+              }));
+            }
+          } catch (pErr) {
+            console.error("Failed to parse SSE JSON:", pErr, eventDataRaw);
+          }
+        }
+      }
+
     } catch (error) {
-      console.error(error);
+      console.error("Streaming error:", error);
+      setChats(prev => prev.map(c => {
+        if (c.id === targetChatId) {
+          return {
+            ...c,
+            messages: c.messages.map(m => m.id === tempAiMsgId ? {
+              ...m,
+              content: `⚠️ Network error: ${error.message}`,
+              isStreaming: false
+            } : m)
+          };
+        }
+        return c;
+      }));
     }
   };
 
