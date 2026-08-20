@@ -1,6 +1,6 @@
 import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
-import { streamChatResponse, formatAIError } from "../services/aiService.js";
+import { streamChatResponse, formatAIError, getGreetingReply } from "../services/aiService.js";
 
 export const getChats = async (req, res) => {
     try {
@@ -124,6 +124,45 @@ export const streamMessage = async (req, res) => {
             return res.end();
         }
 
+        // Check for ChatGPT-style standard greeting reply (e.g. "hello", "hey", "hi", "hello there", etc.)
+        const greetingReply = !req.file ? getGreetingReply(content) : null;
+
+        if (greetingReply) {
+            const userMessage = await Message.create({
+                chatId: req.params.id,
+                role: 'user',
+                content: content || '',
+                image: null
+            });
+            sendEvent('user_message', { userMessage });
+
+            // Stream ChatGPT default greeting chunk by chunk for smooth animation
+            const words = greetingReply.split(' ');
+            let fullText = '';
+            for (let i = 0; i < words.length; i++) {
+                const chunk = (i === 0 ? '' : ' ') + words[i];
+                fullText += chunk;
+                sendEvent('delta', { delta: chunk });
+                await new Promise(r => setTimeout(r, 40));
+            }
+
+            const aiMessage = await Message.create({
+                chatId: req.params.id,
+                role: 'ai',
+                content: fullText,
+                usage: { promptTokens: 5, candidateTokens: 10, totalTokens: 15, model: 'chatgpt-greeting' }
+            });
+
+            if (chat.title === 'New Chat') {
+                chat.title = content ? (content.length > 30 ? content.substring(0, 30) + '...' : content) : 'Greeting';
+            }
+            chat.updatedAt = Date.now();
+            await chat.save();
+
+            sendEvent('done', { aiMessage, chatTitle: chat.title });
+            return res.end();
+        }
+
         // 2. Fetch previous messages
         const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
 
@@ -214,6 +253,33 @@ export const addMessage = async (req, res) => {
 
         const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+        const greetingReply = !req.file ? getGreetingReply(content) : null;
+
+        if (greetingReply) {
+            const userMessage = await Message.create({
+                chatId: req.params.id,
+                role: 'user',
+                content: content || '',
+                image: null
+            });
+
+            const aiMessage = await Message.create({
+                chatId: req.params.id,
+                role: 'ai',
+                content: greetingReply,
+                usage: { promptTokens: 5, candidateTokens: 10, totalTokens: 15, model: 'chatgpt-greeting' }
+            });
+
+            if (chat.title === 'New Chat') {
+                chat.title = content ? (content.length > 30 ? content.substring(0, 30) + '...' : content) : 'Greeting';
+            }
+
+            chat.updatedAt = Date.now();
+            await chat.save();
+
+            return res.status(201).json({ userMessage, aiMessage, chatTitle: chat.title });
+        }
 
         const previousMessages = await Message.find({ chatId: req.params.id }).sort({ createdAt: 1 });
 
