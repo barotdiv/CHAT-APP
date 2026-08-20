@@ -8,7 +8,35 @@ const DEFAULT_MODELS = [
   'gemini-flash-latest'
 ].filter(Boolean);
 
-const SYSTEM_INSTRUCTION = "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt}?model=flux&width=1024&height=1024&nologo=true (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image.";
+const SYSTEM_INSTRUCTION = "You are NovaAI, a helpful, intelligent, and friendly AI assistant designed to respond like ChatGPT by OpenAI. Maintain a clean, friendly, professional, and helpful tone in all responses. When a user greets you, respond warmly in ChatGPT's signature style. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt}?model=flux&width=1024&height=1024&nologo=true (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image.";
+
+const GREETINGS_MAP = {
+  'hello': 'Hello! How can I help you today?',
+  'hey': 'Hello! How can I help you today?',
+  'hi': 'Hello! How can I help you today?',
+  'heya': 'Hello! How can I help you today?',
+  'hola': 'Hello! How can I help you today?',
+  'greetings': 'Hello! How can I help you today?',
+  'hello there': 'Hello there! How can I help you today?',
+  'hey there': 'Hello! How can I help you today?',
+  'hi there': 'Hello! How can I help you today?',
+  'good morning': 'Good morning! How can I help you today?',
+  'good afternoon': 'Good afternoon! How can I help you today?',
+  'good evening': 'Good evening! How can I help you today?',
+  'good day': 'Good day! How can I help you today?'
+};
+
+/**
+ * Returns ChatGPT style default greeting reply for standard hello/hey messages
+ */
+export function getGreetingReply(content) {
+  if (!content || typeof content !== 'string') return null;
+  const cleaned = content.trim().toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ');
+  if (GREETINGS_MAP[cleaned]) {
+    return GREETINGS_MAP[cleaned];
+  }
+  return null;
+}
 
 /**
  * Exponential Backoff Retry Helper
