@@ -3,13 +3,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Supported Gemini Models list in order of preference
 const DEFAULT_MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro'
+  'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-flash-latest'
 ].filter(Boolean);
 
-const SYSTEM_INSTRUCTION = "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt} (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image.";
+const SYSTEM_INSTRUCTION = "You are a helpful AI assistant. If the user asks you to generate, draw, or create an image of something, you must respond with EXACTLY this URL string format and nothing else: https://image.pollinations.ai/prompt/{url_encoded_prompt}?model=flux&width=1024&height=1024&nologo=true (where {url_encoded_prompt} is a highly detailed, comma-separated visual description of the requested image with spaces replaced by %20). Do not include any markdown syntax or other text in your reply when generating an image.";
 
 /**
  * Exponential Backoff Retry Helper
@@ -83,7 +82,7 @@ export async function streamChatResponse({
   timeoutMs = 60000
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey.trim() === '' || apiKey.startsWith("AQ.")) {
+  if (!apiKey || apiKey.trim() === '') {
     throw new Error("Invalid or missing GEMINI_API_KEY in backend/.env. Please get a free key from https://aistudio.google.com/app/apikey");
   }
 
