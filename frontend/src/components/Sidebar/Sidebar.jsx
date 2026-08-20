@@ -5,7 +5,7 @@ import ConversationList from './ConversationList';
 import { Menu, X } from 'lucide-react';
 
 export default function Sidebar({
-  chats, activeChatId, onNewChat, onTemporaryChat, onSelectChat, onRenameChat, onDeleteChat, onTogglePin, onDuplicateChat, onExportChat
+  chats, activeChatId, onNewChat, onSelectChat, onRenameChat, onDeleteChat, onTogglePin, onDuplicateChat, onExportChat
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -37,16 +37,10 @@ export default function Sidebar({
           </button>
         )}
 
-        <SidebarHeader
-          onNewChat={() => {
-            onNewChat();
-            if (isMobileOpen) setIsMobileOpen(false);
-          }}
-          onTemporaryChat={() => {
-            if (onTemporaryChat) onTemporaryChat();
-            if (isMobileOpen) setIsMobileOpen(false);
-          }}
-        />
+        <SidebarHeader onNewChat={() => {
+          onNewChat();
+          if (isMobileOpen) setIsMobileOpen(false);
+        }} />
         <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <div className="sidebar-scroll-area">
           <ConversationList

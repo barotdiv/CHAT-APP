@@ -10,9 +10,7 @@ const DEFAULT_SETTINGS = {
     autoScroll: true,
     typingAnimation: true,
     sound: true,
-    notifications: false,
-    defaultModel: 'gemini-2.5-flash',
-    defaultSystemPrompt: ''
+    notifications: false
 };
 
 export const SettingsProvider = ({ children }) => {
