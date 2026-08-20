@@ -39,6 +39,41 @@ export default function ChatInterface() {
     }
   };
 
+  const handleCopyChat = async (chat) => {
+    try {
+      let textToCopy = '';
+      if (chat.messages && chat.messages.length > 0) {
+        textToCopy = chat.messages.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n\n');
+      } else {
+        const token = localStorage.getItem('chatAppToken');
+        const res = await fetch(`/api/chats/${chat.id}/messages`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            textToCopy = data.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n\n');
+          } else {
+            textToCopy = chat.title;
+          }
+        } else {
+          textToCopy = chat.title;
+        }
+      }
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(textToCopy);
+        showToast('Chat copied to clipboard');
+      }
+    } catch (err) {
+      console.error('Failed to copy chat:', err);
+      showToast('Failed to copy chat');
+    }
+  };
+
   const playSoundEffect = () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -159,8 +194,7 @@ export default function ChatInterface() {
         onRenameChat={renameChat}
         onDeleteChat={deleteChat}
         onTogglePin={togglePinChat}
-        onDuplicateChat={duplicateChat}
-        onExportChat={exportChat}
+        onCopyChat={handleCopyChat}
       />
 
       <div className="chat-container">
@@ -393,11 +427,61 @@ export default function ChatInterface() {
         .conversation-item.active .chat-icon { color: var(--btn-primary-bg, #3b82f6); }
         .chat-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; line-height: 1.4; color: inherit; }
         .chat-rename-input { flex: 1; min-width: 0; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; padding: 2px 6px; font-size: 0.9rem; outline: none; }
-        .chat-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
+        .chat-actions, .conversation-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
         .pin-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: opacity 0.2s, color 0.2s; }
         .conversation-item:hover .pin-btn, .pin-btn.is-pinned { opacity: 1; }
         .pin-btn.is-pinned { color: var(--btn-primary-bg, #3b82f6); opacity: 1; }
         .pin-btn:hover { background-color: var(--hover-overlay); color: var(--text-main); }
+
+        .conversation-menu-container { position: relative; display: flex; align-items: center; }
+        .menu-trigger-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: opacity 0.2s, color 0.2s; }
+        .conversation-item:hover .menu-trigger-btn, .menu-trigger-btn:focus, .menu-trigger-btn.active { opacity: 1; }
+        .menu-trigger-btn:hover { background-color: var(--hover-overlay); color: var(--text-main); opacity: 1; }
+
+        .chat-menu-dropdown {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 4px);
+          background-color: var(--bg-card, #15171E);
+          border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+          border-radius: 8px;
+          padding: 4px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+          z-index: 100;
+          min-width: 120px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .chat-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          font-size: 0.85rem;
+          color: var(--text-main, #ffffff);
+          background: transparent;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          width: 100%;
+          text-align: left;
+          transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .chat-menu-item:hover {
+          background-color: var(--hover-overlay, rgba(255, 255, 255, 0.08));
+        }
+
+        .chat-menu-item.delete {
+          color: #ef4444;
+        }
+
+        .chat-menu-item.delete:hover {
+          background-color: rgba(239, 68, 68, 0.15);
+          color: #f87171;
+        }
       `}</style>
     </div>
   );

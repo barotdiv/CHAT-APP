@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Pin } from 'lucide-react';
+import ConversationMenu from './ConversationMenu';
 
-export default function ConversationItem({ chat, isActive, onSelect, onRename, onDelete, onTogglePin }) {
+export default function ConversationItem({ chat, isActive, onSelect, onRename, onDelete, onTogglePin, onCopyChat }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(chat.title);
   const inputRef = useRef(null);
@@ -35,6 +36,14 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
     onTogglePin(chat.id);
   };
 
+  const handleDelete = () => {
+    if (onDelete) onDelete(chat.id);
+  };
+
+  const handleCopy = () => {
+    if (onCopyChat) onCopyChat(chat);
+  };
+
   return (
     <div
       className={`conversation-item ${isActive ? 'active' : ''} ${chat.isPinned ? 'pinned' : ''}`}
@@ -53,7 +62,7 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <span className="chat-title">{chat.title}</span>
+        <span className="chat-title" onDoubleClick={() => setIsEditing(true)}>{chat.title}</span>
       )}
 
       {!isEditing && (
@@ -62,11 +71,18 @@ export default function ConversationItem({ chat, isActive, onSelect, onRename, o
             className={`pin-btn ${chat.isPinned ? 'is-pinned' : ''}`}
             onClick={handleTogglePin}
             aria-label={chat.isPinned ? "Unpin chat" : "Pin chat"}
+            title={chat.isPinned ? "Unpin chat" : "Pin chat"}
           >
             <Pin size={16} fill={chat.isPinned ? "currentColor" : "none"} />
           </button>
+
+          <ConversationMenu
+            onCopy={handleCopy}
+            onDelete={handleDelete}
+          />
         </div>
       )}
     </div>
   );
 }
+

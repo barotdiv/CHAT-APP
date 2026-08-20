@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MoreHorizontal, Edit2, Copy, Download, Trash2 } from 'lucide-react';
+import { MoreVertical, Copy, Trash2 } from 'lucide-react';
 
-export default function ConversationMenu({ onRename, onDelete, onDuplicate, onExport }) {
+export default function ConversationMenu({ onCopy, onDelete }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -26,52 +26,42 @@ export default function ConversationMenu({ onRename, onDelete, onDuplicate, onEx
     setIsOpen(!isOpen);
   };
 
-  const handleRename = (e) => {
+  const handleCopy = (e) => {
     e.stopPropagation();
-    onRename();
+    if (onCopy) onCopy();
     setIsOpen(false);
   };
 
-  const handleDuplicate = (e) => {
-    e.stopPropagation();
-    if (onDuplicate) onDuplicate();
-    setIsOpen(false);
-  }
-
-  const handleExport = (e) => {
-    e.stopPropagation();
-    if (onExport) onExport();
-    setIsOpen(false);
-  }
-
   const handleDelete = (e) => {
     e.stopPropagation();
-    onDelete();
+    if (onDelete) onDelete();
     setIsOpen(false);
   };
 
   return (
-    <div className="conversation-menu-container" ref={menuRef}>
-      <button className="menu-trigger" onClick={toggleMenu} aria-label="Chat options">
-        <MoreHorizontal size={16} />
+    <div className="conversation-menu-container" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+      <button 
+        className={`menu-trigger-btn ${isOpen ? 'active' : ''}`} 
+        onClick={toggleMenu} 
+        aria-label="Chat options"
+        title="Chat options"
+      >
+        <MoreVertical size={16} />
       </button>
 
       {isOpen && (
-        <div className="menu-dropdown">
-          <button className="menu-item" onClick={handleRename}>
-            <Edit2 size={14} /> Rename
+        <div className="chat-menu-dropdown">
+          <button className="chat-menu-item" onClick={handleCopy}>
+            <Copy size={14} />
+            <span>Copy</span>
           </button>
-          <button className="menu-item" onClick={handleDuplicate}>
-            <Copy size={14} /> Duplicate
-          </button>
-          <button className="menu-item" onClick={handleExport}>
-            <Download size={14} /> Export
-          </button>
-          <button className="menu-item delete" onClick={handleDelete}>
-            <Trash2 size={14} /> Delete
+          <button className="chat-menu-item delete" onClick={handleDelete}>
+            <Trash2 size={14} />
+            <span>Delete</span>
           </button>
         </div>
       )}
     </div>
   );
 }
+
