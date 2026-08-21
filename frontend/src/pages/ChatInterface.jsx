@@ -250,13 +250,6 @@ export default function ChatInterface() {
                         <span className="dot">.</span>
                         <span className="dot">.</span>
                       </div>
-                    ) : /https?:\/\/image\.pollinations\.ai\//i.test(msg.content) ? (
-                      <img
-                        src={msg.content.match(/https?:\/\/image\.pollinations\.ai\/[^\s)\]"]+/i)?.[0] || msg.content.trim()}
-                        alt="AI Generated Artwork"
-                        className="message-image"
-                        style={{ marginTop: '8px', maxWidth: '100%', borderRadius: '8px', minWidth: '300px', minHeight: '300px', backgroundColor: 'var(--bg-input)' }}
-                      />
                     ) : (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
