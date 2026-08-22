@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatComposer, ChatSendButton, Button } from '@astryxdesign/core';
-import { Mic, MoreVertical, Trash2, ImagePlus, X, Download, Copy, Share2 } from 'lucide-react';
+import { Mic, MoreVertical, Trash2, ImagePlus, X, Download, Copy, Share2, Volume2, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import { useConversations } from '../hooks/useConversations';
 import { useSettings } from "../context/SettingsContext";
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -29,6 +30,7 @@ export default function ChatInterface() {
   const [toastMessage, setToastMessage] = useState('');
 
   const { isListening, transcript, isSupported, error, toggleListening } = useSpeechRecognition();
+  const { speakingMessageId, isSupported: isTtsSupported, speak } = useTextToSpeech();
   const prevListening = useRef(false);
   const prevMessageCount = useRef(messages.length);
 
@@ -290,6 +292,19 @@ export default function ChatInterface() {
                     >
                       <Copy size={14} />
                     </button>
+                    {isTtsSupported && (
+                      <button
+                        className={`msg-action-btn ${speakingMessageId === (msg._id || msg.id) ? 'active-speaking' : ''}`}
+                        title={speakingMessageId === (msg._id || msg.id) ? "Stop reading" : "Read aloud"}
+                        onClick={() => speak(msg._id || msg.id, msg.content)}
+                      >
+                        {speakingMessageId === (msg._id || msg.id) ? (
+                          <Square size={14} style={{ color: '#ef4444' }} />
+                        ) : (
+                          <Volume2 size={14} />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </>
               )}
